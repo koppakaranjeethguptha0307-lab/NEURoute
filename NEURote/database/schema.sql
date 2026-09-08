@@ -1,0 +1,3 @@
+-- NER Smart Logistics Database
+-- Database schema will be defined during implementation.
+-- Do not create database tables yet.
