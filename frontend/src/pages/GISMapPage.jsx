@@ -22,13 +22,16 @@ import {
 import { api } from '../services/api';
 import { MapComponent } from '../components/MapComponent';
 
-// Predefined North Eastern Region Presets
+// Predefined North Eastern Region Presets (8 States & Strategic Corridors)
 const REGION_PRESETS = [
-  { id: 'all', name: 'All NER Region', center: [25.8, 92.5], zoom: 7 },
-  { id: 'nh06', name: 'NH-06 Corridor (Shillong-Silchar)', center: [25.4, 92.2], zoom: 9 },
-  { id: 'guwahati', name: 'Guwahati Gateway Hub', center: [26.14, 91.73], zoom: 11 },
-  { id: 'nh29', name: 'Kohima - Imphal (NH-29)', center: [25.6, 94.0], zoom: 9 },
-  { id: 'sikkim', name: 'Sikkim Highway (NH-10)', center: [27.2, 88.5], zoom: 9 },
+  { id: 'all', name: '🇮🇳 All Northeast India (NER)', center: [26.15, 93.0], zoom: 7.2 },
+  { id: 'nh06', name: '⛰️ NH-06 Meghalaya Lifeline (Shillong-Silchar)', center: [25.4, 92.2], zoom: 9 },
+  { id: 'brahmaputra', name: '🌁 Brahmaputra Valley (Guwahati-Dibrugarh)', center: [26.6, 93.5], zoom: 8 },
+  { id: 'nh29', name: '🏔️ Nagaland & Manipur (Kohima-Imphal)', center: [25.2, 94.0], zoom: 9 },
+  { id: 'arunachal', name: '🌲 Arunachal Frontier (Itanagar-Tawang)', center: [27.3, 92.8], zoom: 8 },
+  { id: 'mizoram', name: '⛰️ Mizoram Ridge (Silchar-Aizawl)', center: [24.2, 92.8], zoom: 9 },
+  { id: 'tripura', name: '🌾 Tripura Lifeline (Agartala)', center: [23.9, 91.5], zoom: 9 },
+  { id: 'sikkim', name: '❄️ Sikkim Himalayan Lifeline (Gangtok)', center: [27.3, 88.6], zoom: 9 },
 ];
 
 export const GISMapPage = () => {
@@ -50,9 +53,9 @@ export const GISMapPage = () => {
     routes: { loading: true, status: 'LOADING', statusCode: 0, isLive: false, isFallback: false, errorMessage: null },
   });
 
-  // Map View State
-  const [activeCenter, setActiveCenter] = useState([25.8, 92.5]);
-  const [activeZoom, setActiveZoom] = useState(7);
+  // Map View State — Centered on Northeast India
+  const [activeCenter, setActiveCenter] = useState([26.15, 93.0]);
+  const [activeZoom, setActiveZoom] = useState(7.2);
   const [selectedRegion, setSelectedRegion] = useState('all');
 
   // Selected Entity Inspector State
@@ -273,7 +276,9 @@ export const GISMapPage = () => {
 
       {/* 2. Top-Center Regional Fast Pan Toolbar */}
       <div className="floating-panel region-bar">
-        <Compass size={16} color="#38bdf8" />
+        <div style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', paddingRight: '4px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+          <Compass size={14} /> NER CORRIDORS:
+        </div>
         {REGION_PRESETS.map((p) => (
           <button
             key={p.id}
@@ -411,6 +416,23 @@ export const GISMapPage = () => {
           </button>
         </div>
 
+        {/* Northeast India Focus Banner */}
+        <div style={{ background: 'rgba(6, 182, 212, 0.12)', border: '1px solid rgba(6, 182, 212, 0.35)', borderRadius: '6px', padding: '6px 8px', marginBottom: '8px' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, color: '#38bdf8', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            🇮🇳 Northeast India (NER) Focus
+          </div>
+          <div style={{ fontSize: '9px', color: '#cbd5e1', marginTop: '2px' }}>
+            8 States • 12 Lifelines • 6 Hazard Hotspots • 9 Hubs
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', marginTop: '4px' }}>
+            {['Assam', 'Meghalaya', 'Arunachal', 'Nagaland', 'Manipur', 'Mizoram', 'Tripura', 'Sikkim'].map((st) => (
+              <span key={st} style={{ background: 'rgba(15,23,42,0.85)', border: '1px solid rgba(56,189,248,0.3)', borderRadius: '3px', padding: '1px 4px', fontSize: '8px', color: '#94a3b8' }}>
+                {st}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Live / Demo Mode Notification */}
         <div
           style={{
@@ -543,6 +565,14 @@ export const GISMapPage = () => {
                     <td className="prop-label">Highway</td>
                     <td className="prop-value">{selectedEntity.data.highway_number}</td>
                   </tr>
+                  {selectedEntity.data.state && (
+                    <tr>
+                      <td className="prop-label">State / Region</td>
+                      <td className="prop-value" style={{ color: '#38bdf8', fontWeight: 700 }}>
+                        {selectedEntity.data.state}
+                      </td>
+                    </tr>
+                  )}
                   <tr>
                     <td className="prop-label">Status</td>
                     <td className="prop-value">

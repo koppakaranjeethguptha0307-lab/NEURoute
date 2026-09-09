@@ -39,6 +39,9 @@ export const App = () => {
           <div className="brand-tag" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', borderColor: 'rgba(52, 211, 153, 0.3)' }}>
             GIS & Maps
           </div>
+          <div className="brand-tag" style={{ background: 'rgba(6, 182, 212, 0.15)', color: '#38bdf8', borderColor: 'rgba(6, 182, 212, 0.3)' }}>
+            🇮🇳 Northeast India (NER)
+          </div>
         </div>
 
         {/* The 5 Canonical Portals Navigation */}
@@ -75,7 +78,7 @@ export const App = () => {
           </div>
           <div className="status-indicator" style={{ borderLeft: '1px solid #334155', paddingLeft: '12px' }}>
             <Radio size={14} color="#38bdf8" />
-            <span>NER Grid Active</span>
+            <span>8 NER States Monitored</span>
           </div>
         </div>
       </header>

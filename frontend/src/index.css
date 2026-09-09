@@ -551,6 +551,59 @@ html, body, #root {
   margin: 6px 0 !important;
 }
 
+/* NER Capital & Gateway Badges */
+.custom-capital-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.ner-capital-marker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(15, 23, 42, 0.90);
+  border: 1px solid rgba(56, 189, 248, 0.55);
+  border-radius: 12px;
+  padding: 2px 7px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ner-capital-marker:hover {
+  transform: scale(1.06);
+  border-color: #38bdf8;
+  background: rgba(15, 23, 42, 0.98);
+}
+
+.ner-capital-marker.gateway {
+  border-color: #f59e0b;
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.capital-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 6px #38bdf8;
+}
+
+.ner-capital-marker.gateway .capital-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
+}
+
+.capital-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: 0.2px;
+}
+
 /* Mobile & Responsive Media Queries */
 @media (max-width: 868px) {
   .top-nav {

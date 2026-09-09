@@ -1,5 +1,7 @@
 /**
  * Canonical GIS & Map Data for NEURote (North Eastern Region Lifeline Corridors)
+ * Comprehensive coverage for all 8 Northeast Indian States:
+ * Assam, Meghalaya, Arunachal Pradesh, Nagaland, Manipur, Mizoram, Tripura, Sikkim.
  * Field names, enums, and structures strictly mirror:
  * - backend/app/schemas/enums.py
  * - backend/app/schemas/road.py
@@ -9,10 +11,150 @@
  * - backend/app/models/hub.py & hazard.py
  */
 
-// 1. Canonical Road Segments GeoJSON (FeatureCollection)
+// 1. Northeast India (NER) Regional Boundary Polygon
+export const mockNerBoundaryGeoJSON = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      id: "NER-BOUNDARY",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [88.00, 27.80], // Northwest Sikkim
+            [88.90, 28.10], // North Sikkim border
+            [88.75, 27.05], // Sikkim-Bengal border
+            [89.70, 26.75], // Bhutan south border / Assam
+            [91.60, 26.85], // Western Assam
+            [92.10, 27.85], // West Kameng (Arunachal)
+            [92.00, 28.35], // Tawang / McMahon Line
+            [94.20, 29.05], // Upper Siang
+            [96.40, 29.40], // Dibang Valley
+            [97.40, 28.30], // Anjaw / Kibithu easternmost tip
+            [97.10, 27.50], // Changlang
+            [95.75, 26.95], // Tirap border
+            [95.10, 26.25], // Mon (Nagaland)
+            [94.50, 25.50], // Kohima / Phek
+            [94.30, 24.10], // Chandel (Manipur border)
+            [93.30, 23.80], // Champhai (Mizoram)
+            [93.10, 22.00], // Southernmost Mizoram tip
+            [92.50, 22.25], // Lawngtlai
+            [92.20, 23.35], // Mamit / Tripura border
+            [91.30, 23.30], // South Tripura / Sabroom
+            [91.15, 24.15], // Agartala
+            [92.10, 24.60], // Karimganj (Assam)
+            [92.30, 25.10], // Jaintia Hills (Meghalaya)
+            [91.20, 25.15], // South Garo Hills
+            [89.85, 25.65], // West Garo Hills (Dhubri border)
+            [89.80, 26.35], // Dhubri / Kokrajhar
+            [88.35, 26.55], // Siliguri Corridor ("Chicken's Neck")
+            [88.00, 27.80], // Closing back at Sikkim
+          ],
+        ],
+      },
+      properties: {
+        region_name: "Northeast India (NER) Operational Theater",
+        states_count: 8,
+        states: [
+          "Assam",
+          "Meghalaya",
+          "Arunachal Pradesh",
+          "Nagaland",
+          "Manipur",
+          "Mizoram",
+          "Tripura",
+          "Sikkim",
+        ],
+        area_sqkm: 262179,
+        international_borders: ["Bangladesh", "Bhutan", "China (Tibet)", "Myanmar"],
+        description: "Strategic logistics theater covering 8 states connected to mainland India via the Siliguri Corridor.",
+      },
+    },
+  ],
+};
+
+// 2. The 8 State Capitals & Strategic Gateways of Northeast India
+export const mockNerStateCapitals = [
+  {
+    id: "AS-DISPUR",
+    name: "Guwahati / Dispur",
+    state: "Assam",
+    tag: "Gateway to Northeast India",
+    coordinates: [26.1445, 91.7362],
+    is_main_gateway: true,
+    description: "Primary logistical and transport artery connecting all 7 sister states to mainland India.",
+  },
+  {
+    id: "ML-SHILLONG",
+    name: "Shillong",
+    state: "Meghalaya",
+    tag: "High-Altitude Central Plateau",
+    coordinates: [25.5788, 91.8833],
+    is_main_gateway: false,
+    description: "Vital transit point on NH-06 leading to Barak Valley, Tripura, and Mizoram.",
+  },
+  {
+    id: "AR-ITANAGAR",
+    name: "Itanagar",
+    state: "Arunachal Pradesh",
+    tag: "Northern Frontier Capital",
+    coordinates: [27.0844, 93.6053],
+    is_main_gateway: false,
+    description: "Capital of India's easternmost frontier state, serviced via NH-415 and Trans-Arunachal Highway.",
+  },
+  {
+    id: "NL-KOHIMA",
+    name: "Kohima",
+    state: "Nagaland",
+    tag: "Central Mountain Pass Hub",
+    coordinates: [25.6751, 94.1086],
+    is_main_gateway: false,
+    description: "Mountain pass on NH-29 linking Dimapur railhead with Manipur.",
+  },
+  {
+    id: "MN-IMPHAL",
+    name: "Imphal",
+    state: "Manipur",
+    tag: "Eastern Valley Artery",
+    coordinates: [24.8170, 93.9368],
+    is_main_gateway: false,
+    description: "Manipur valley hub and critical terminal for the Asian Highway 1 corridor.",
+  },
+  {
+    id: "MZ-AIZAWL",
+    name: "Aizawl",
+    state: "Mizoram",
+    tag: "Southern Hill Ridge Hub",
+    coordinates: [23.7271, 92.7176],
+    is_main_gateway: false,
+    description: "Hill capital reliant on single lifeline highway NH-306 from Silchar.",
+  },
+  {
+    id: "TR-AGARTALA",
+    name: "Agartala",
+    state: "Tripura",
+    tag: "Southwest Plain Gateway",
+    coordinates: [23.8315, 91.2868],
+    is_main_gateway: false,
+    description: "State capital on Indo-Bangladesh border, fed by NH-08 lifeline.",
+  },
+  {
+    id: "SK-GANGTOK",
+    name: "Gangtok",
+    state: "Sikkim",
+    tag: "Himalayan Corridor Capital",
+    coordinates: [27.3389, 88.6065],
+    is_main_gateway: false,
+    description: "Himalayan capital fed exclusively by landslide-prone NH-10 from Siliguri.",
+  },
+];
+
+// 3. Canonical Road Segments GeoJSON across all 8 NER States
 export const mockRoadSegmentsGeoJSON = {
   type: "FeatureCollection",
   features: [
+    // 1. NH-06: Guwahati to Jorabat (Assam)
     {
       type: "Feature",
       id: 1,
@@ -28,6 +170,7 @@ export const mockRoadSegmentsGeoJSON = {
         segment_code: "NH-06-AS-01",
         name: "Guwahati - Jorabat Gateway Corridor",
         highway_number: "NH-06",
+        state: "Assam",
         length_km: 18.5,
         current_status: "OPEN",
         risk_score: 0.12,
@@ -35,6 +178,7 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 60.0,
       },
     },
+    // 2. NH-06: Jorabat - Nongpoh - Shillong (Meghalaya, Sonapur Landslide Sector)
     {
       type: "Feature",
       id: 2,
@@ -51,6 +195,7 @@ export const mockRoadSegmentsGeoJSON = {
         segment_code: "NH-06-MEGH-02",
         name: "Jorabat - Shillong / Sonapur Lifeline Segment",
         highway_number: "NH-06",
+        state: "Meghalaya",
         length_km: 68.2,
         current_status: "BLOCKED", // DEMO SCENARIO: Sonapur Landslide
         risk_score: 0.94,
@@ -58,6 +203,7 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 40.0,
       },
     },
+    // 3. NH-06: Shillong - Jowai (Meghalaya)
     {
       type: "Feature",
       id: 3,
@@ -73,6 +219,7 @@ export const mockRoadSegmentsGeoJSON = {
         segment_code: "NH-06-MEGH-03",
         name: "Shillong - Jowai Ridge Corridor",
         highway_number: "NH-06",
+        state: "Meghalaya",
         length_km: 64.0,
         current_status: "RISKY",
         risk_score: 0.65,
@@ -80,6 +227,7 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 45.0,
       },
     },
+    // 4. NH-06: Jowai - Silchar (Meghalaya / Assam Barak Valley)
     {
       type: "Feature",
       id: 4,
@@ -96,6 +244,7 @@ export const mockRoadSegmentsGeoJSON = {
         segment_code: "NH-06-MEGH-04",
         name: "Jowai - Silchar Lifeline Descent",
         highway_number: "NH-06",
+        state: "Meghalaya / Assam",
         length_km: 135.0,
         current_status: "OPEN",
         risk_score: 0.28,
@@ -103,6 +252,7 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 40.0,
       },
     },
+    // 5. NH-27 Strategic Bypass Corridor (Assam: Guwahati - Nagaon - Umrangso - Silchar)
     {
       type: "Feature",
       id: 5,
@@ -110,9 +260,9 @@ export const mockRoadSegmentsGeoJSON = {
         type: "LineString",
         coordinates: [
           [91.7362, 26.1445], // Guwahati
-          [92.6840, 26.3450], // Nagaon (NH-27)
-          [93.1700, 25.7500], // Lumding - Umrangso Bypass
-          [92.7930, 24.8333], // Silchar Transit Route
+          [92.6840, 26.3450], // Nagaon
+          [93.1700, 25.7500], // Umrangso / Dima Hasao
+          [92.7930, 24.8333], // Silchar
         ],
       },
       properties: {
@@ -120,6 +270,7 @@ export const mockRoadSegmentsGeoJSON = {
         segment_code: "NH-27-BYPASS-01",
         name: "NH-27 East-West Strategic Bypass Corridor",
         highway_number: "NH-27",
+        state: "Assam",
         length_km: 320.0,
         current_status: "OPEN",
         risk_score: 0.18,
@@ -127,21 +278,50 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 65.0,
       },
     },
+    // 6. NH-37 Brahmaputra Valley Trunk (Assam: Nagaon - Jorhat - Dibrugarh)
     {
       type: "Feature",
       id: 6,
       geometry: {
         type: "LineString",
         coordinates: [
-          [93.7270, 25.9060], // Dimapur
-          [94.1100, 25.6700], // Kohima
+          [92.6840, 26.3450], // Nagaon
+          [93.1800, 26.5800], // Kaziranga
+          [94.2100, 26.7500], // Jorhat
+          [94.9100, 27.4700], // Dibrugarh
         ],
       },
       properties: {
         segment_id: 6,
+        segment_code: "NH-37-AS-02",
+        name: "Brahmaputra Valley Trunk Highway",
+        highway_number: "NH-37",
+        state: "Assam",
+        length_km: 260.0,
+        current_status: "OPEN",
+        risk_score: 0.15,
+        is_critical_lifeline: true,
+        speed_limit_kmh: 70.0,
+      },
+    },
+    // 7. NH-29 Nagaland Mountain Highway (Dimapur - Kohima)
+    {
+      type: "Feature",
+      id: 7,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [93.7270, 25.9060], // Dimapur
+          [93.9200, 25.7800], // Paglapahar
+          [94.1086, 25.6751], // Kohima
+        ],
+      },
+      properties: {
+        segment_id: 7,
         segment_code: "NH-29-NL-01",
-        name: "Dimapur - Kohima Mountain Highway",
+        name: "Dimapur - Kohima Mountain Lifeline",
         highway_number: "NH-29",
+        state: "Nagaland",
         length_km: 74.0,
         current_status: "RISKY",
         risk_score: 0.58,
@@ -149,25 +329,132 @@ export const mockRoadSegmentsGeoJSON = {
         speed_limit_kmh: 35.0,
       },
     },
+    // 8. NH-02 Manipur Valley Lifeline (Kohima - Mao Gate - Senapati - Imphal)
     {
       type: "Feature",
-      id: 7,
+      id: 8,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [94.1086, 25.6751], // Kohima
+          [94.1300, 25.5100], // Mao Gate
+          [94.0200, 25.2600], // Senapati
+          [93.9368, 24.8170], // Imphal
+        ],
+      },
+      properties: {
+        segment_id: 8,
+        segment_code: "NH-02-MN-01",
+        name: "Kohima - Imphal Valley Artery",
+        highway_number: "NH-02",
+        state: "Nagaland / Manipur",
+        length_km: 138.0,
+        current_status: "OPEN",
+        risk_score: 0.32,
+        is_critical_lifeline: true,
+        speed_limit_kmh: 40.0,
+      },
+    },
+    // 9. NH-306 Mizoram Hill Corridor (Silchar - Kolasib - Aizawl)
+    {
+      type: "Feature",
+      id: 9,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [92.7930, 24.8333], // Silchar
+          [92.7000, 24.5000], // Vairengte (Mizoram Gate)
+          [92.6800, 24.2200], // Kolasib
+          [92.7176, 23.7271], // Aizawl
+        ],
+      },
+      properties: {
+        segment_id: 9,
+        segment_code: "NH-306-MZ-01",
+        name: "Silchar - Aizawl Mountain Lifeline",
+        highway_number: "NH-306",
+        state: "Assam / Mizoram",
+        length_km: 175.0,
+        current_status: "RISKY",
+        risk_score: 0.62,
+        is_critical_lifeline: true,
+        speed_limit_kmh: 35.0,
+      },
+    },
+    // 10. NH-08 Tripura Lifeline (Silchar/Churaibari - Dharmanagar - Agartala)
+    {
+      type: "Feature",
+      id: 10,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [92.7930, 24.8333], // Silchar
+          [92.2400, 24.4500], // Churaibari Gate
+          [92.1600, 24.3700], // Dharmanagar
+          [91.6000, 23.9800], // Teliamura
+          [91.2868, 23.8315], // Agartala
+        ],
+      },
+      properties: {
+        segment_id: 10,
+        segment_code: "NH-08-TR-01",
+        name: "Assam - Tripura Strategic Lifeline",
+        highway_number: "NH-08",
+        state: "Assam / Tripura",
+        length_km: 245.0,
+        current_status: "OPEN",
+        risk_score: 0.22,
+        is_critical_lifeline: true,
+        speed_limit_kmh: 55.0,
+      },
+    },
+    // 11. NH-415 Arunachal Capital Link (Banderdewa - Naharlagun - Itanagar)
+    {
+      type: "Feature",
+      id: 11,
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [93.8200, 27.0200], // Banderdewa (Assam border)
+          [93.7000, 27.0600], // Naharlagun
+          [93.6053, 27.0844], // Itanagar
+        ],
+      },
+      properties: {
+        segment_id: 11,
+        segment_code: "NH-415-AR-01",
+        name: "Itanagar Capital Expressway Corridor",
+        highway_number: "NH-415",
+        state: "Arunachal Pradesh",
+        length_km: 42.0,
+        current_status: "OPEN",
+        risk_score: 0.25,
+        is_critical_lifeline: true,
+        speed_limit_kmh: 50.0,
+      },
+    },
+    // 12. NH-10 Sikkim Himalayan Lifeline (Siliguri - Sevoke - Rangpo - Gangtok)
+    {
+      type: "Feature",
+      id: 12,
       geometry: {
         type: "LineString",
         coordinates: [
           [88.4300, 26.7200], // Siliguri Gateway
-          [88.5100, 27.1700], // Rangpo
-          [88.6138, 27.3314], // Gangtok
+          [88.4700, 26.8800], // Sevoke (Coronation Bridge)
+          [88.5100, 27.1700], // Rangpo (Sikkim border)
+          [88.6065, 27.3389], // Gangtok
         ],
       },
       properties: {
-        segment_id: 7,
+        segment_id: 12,
         segment_code: "NH-10-SK-01",
         name: "Siliguri - Rangpo - Gangtok Lifeline",
         highway_number: "NH-10",
+        state: "West Bengal / Sikkim",
         length_km: 114.0,
-        current_status: "UNKNOWN",
-        risk_score: 0.42,
+        current_status: "RISKY",
+        risk_score: 0.68,
         is_critical_lifeline: true,
         speed_limit_kmh: 40.0,
       },
@@ -175,7 +462,7 @@ export const mockRoadSegmentsGeoJSON = {
   ],
 };
 
-// 2. Active Incidents (with real schema fields)
+// 4. Active Incidents across Northeast India
 export const mockIncidents = [
   {
     incident_id: 101,
@@ -183,7 +470,8 @@ export const mockIncidents = [
     category: "LANDSLIDE",
     severity: "CRITICAL",
     status: "ACTIVE",
-    description: "Massive debris flow and rockfall blocking both lanes. Heavy machinery deployed for clearance.",
+    state: "Meghalaya",
+    description: "Massive rockfall and slope collapse blocking both lanes on NH-06 lifeline. Emergency convoy diverted to Umrangso bypass.",
     latitude: 25.7520,
     longitude: 91.8950,
     road_segment_id: 2,
@@ -199,23 +487,25 @@ export const mockIncidents = [
     category: "ROAD_DAMAGE",
     severity: "HIGH",
     status: "CONFIRMED",
-    description: "Single lane traffic movement under escort due to ongoing mud runoff.",
+    state: "Nagaland",
+    description: "Active mud runoff across highway shoulder. Heavy convoys moving at 15 km/h under police pilot.",
     latitude: 25.7800,
     longitude: 93.9200,
-    road_segment_id: 6,
+    road_segment_id: 7,
     blocked_lanes: 1,
     passable_by_heavy_vehicles: true,
     estimated_clearance_hours: 6.0,
     reported_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    resolution_notes: "Convoy moving at 15 km/h",
+    resolution_notes: "Convoy moving under pilot",
   },
   {
     incident_id: 103,
-    title: "Culvert Waterlogging near Jowai Outskirts",
+    title: "Waterlogging & Runoff near Jowai Outskirts",
     category: "FLOOD",
     severity: "MEDIUM",
     status: "INVESTIGATING",
-    description: "Monsoon runoff overflowing shoulder. Passable for heavy trucks, risky for light vehicles.",
+    state: "Meghalaya",
+    description: "Monsoon runoff overflowing highway drainage. Passable for heavy trucks, hazardous for light delivery vans.",
     latitude: 25.4600,
     longitude: 92.2300,
     road_segment_id: 3,
@@ -225,56 +515,112 @@ export const mockIncidents = [
     reported_at: new Date(Date.now() - 3600000 * 1).toISOString(),
     resolution_notes: null,
   },
+  {
+    incident_id: 104,
+    title: "Active Sinking Zone at 29th Mile (NH-10)",
+    category: "LANDSLIDE",
+    severity: "HIGH",
+    status: "ACTIVE",
+    state: "Sikkim",
+    description: "Teesta river bank erosion causing recurring pavement subsidence. Essential freight restricted to night window.",
+    latitude: 27.0500,
+    longitude: 88.5000,
+    road_segment_id: 12,
+    blocked_lanes: 1,
+    passable_by_heavy_vehicles: true,
+    estimated_clearance_hours: 8.0,
+    reported_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    resolution_notes: "Single file traffic",
+  },
 ];
 
-// 3. Hazard Hotspots (models/hazard.py)
+// 5. Regional Hazard Hotspots across Northeast India
 export const mockHazards = [
   {
     id: 1,
-    name: "Sonapur High Vulnerability Slope",
+    name: "Sonapur Tunnel High-Risk Slope",
     hazard_type: "LANDSLIDE_ZONE",
     severity: "CRITICAL",
     state: "Meghalaya",
     latitude: 25.7520,
     longitude: 91.8950,
-    radius_km: 6.5,
+    radius_km: 7.5,
     is_active: true,
+    notes: "Historically highest blockage frequency in Northeast India during SW monsoons.",
   },
   {
     id: 2,
-    name: "Barak Basin Inundation Zone",
+    name: "Barak Basin Inundation Plain",
     hazard_type: "FLOOD_PRONE",
     severity: "HIGH",
     state: "Assam",
     latitude: 24.8100,
     longitude: 92.7800,
-    radius_km: 12.0,
+    radius_km: 14.0,
     is_active: true,
+    notes: "Annual monsoonal flooding affecting Cachar, Karimganj, and Hailakandi lifelines.",
   },
   {
     id: 3,
-    name: "Paglapahar Sinking Zone",
+    name: "Paglapahar Sinking & Slide Zone",
     hazard_type: "LANDSLIDE_ZONE",
     severity: "HIGH",
     state: "Nagaland",
     latitude: 25.7800,
     longitude: 93.9200,
-    radius_km: 4.5,
+    radius_km: 5.5,
     is_active: true,
+    notes: "Unstable rock stratification on NH-29 mountain descent.",
+  },
+  {
+    id: 4,
+    name: "29th Mile Teesta Sinking Corridor",
+    hazard_type: "LANDSLIDE_ZONE",
+    severity: "CRITICAL",
+    state: "Sikkim",
+    latitude: 27.0500,
+    longitude: 88.5000,
+    radius_km: 8.0,
+    is_active: true,
+    notes: "NH-10 critical lifeline chokepoint connecting Sikkim to Siliguri.",
+  },
+  {
+    id: 5,
+    name: "Kolasib Mudflow Hazard Belt",
+    hazard_type: "LANDSLIDE_ZONE",
+    severity: "HIGH",
+    state: "Mizoram",
+    latitude: 24.2200,
+    longitude: 92.6800,
+    radius_km: 6.0,
+    is_active: true,
+    notes: "High rainfall induces steep ridge slides on NH-306.",
+  },
+  {
+    id: 6,
+    name: "Dima Hasao Hill Sinking Hotspot",
+    hazard_type: "LANDSLIDE_ZONE",
+    severity: "HIGH",
+    state: "Assam",
+    latitude: 25.7500,
+    longitude: 93.1700,
+    radius_km: 10.0,
+    is_active: true,
+    notes: "Strategic Umrangso bypass mountain sector subject to torrential washouts.",
   },
 ];
 
-// 4. Logistics Hubs (models/hub.py)
+// 6. Strategic Logistics Depots in all 8 Northeast States
 export const mockHubs = [
   {
     id: 1,
-    name: "Guwahati Central Depot",
+    name: "Guwahati Central Gateway Logistics Park",
     hub_type: "CENTRAL_DEPOT",
     state: "Assam",
     latitude: 26.1445,
     longitude: 91.7362,
-    capacity_tonnes: 500.0,
-    is_emergency_depot: false,
+    capacity_tonnes: 850.0,
+    is_emergency_depot: true,
     contact_phone: "+91-361-2890100",
   },
   {
@@ -284,7 +630,7 @@ export const mockHubs = [
     state: "Meghalaya",
     latitude: 25.5788,
     longitude: 91.8833,
-    capacity_tonnes: 150.0,
+    capacity_tonnes: 220.0,
     is_emergency_depot: true,
     contact_phone: "+91-364-2223400",
   },
@@ -292,172 +638,216 @@ export const mockHubs = [
     id: 3,
     name: "Silchar Transit Relief Hub",
     hub_type: "FORWARD_DEPOT",
-    state: "Assam",
+    state: "Assam (Barak Valley)",
     latitude: 24.8333,
     longitude: 92.7930,
-    capacity_tonnes: 250.0,
+    capacity_tonnes: 350.0,
     is_emergency_depot: true,
     contact_phone: "+91-384-2234500",
   },
   {
     id: 4,
-    name: "Dimapur Logistics Park",
+    name: "Dimapur Central Railhead Logistics Hub",
     hub_type: "FORWARD_DEPOT",
     state: "Nagaland",
     latitude: 25.9060,
     longitude: 93.7270,
-    capacity_tonnes: 300.0,
+    capacity_tonnes: 400.0,
     is_emergency_depot: false,
     contact_phone: "+91-386-2245600",
   },
+  {
+    id: 5,
+    name: "Imphal Forward Relief Depot",
+    hub_type: "FORWARD_DEPOT",
+    state: "Manipur",
+    latitude: 24.8170,
+    longitude: 93.9368,
+    capacity_tonnes: 280.0,
+    is_emergency_depot: true,
+    contact_phone: "+91-385-2441200",
+  },
+  {
+    id: 6,
+    name: "Aizawl Hill Logistics Depot",
+    hub_type: "FORWARD_DEPOT",
+    state: "Mizoram",
+    latitude: 23.7271,
+    longitude: 92.7176,
+    capacity_tonnes: 200.0,
+    is_emergency_depot: true,
+    contact_phone: "+91-389-2321100",
+  },
+  {
+    id: 7,
+    name: "Agartala Multi-Modal Transit Depot",
+    hub_type: "FORWARD_DEPOT",
+    state: "Tripura",
+    latitude: 23.8315,
+    longitude: 91.2868,
+    capacity_tonnes: 320.0,
+    is_emergency_depot: false,
+    contact_phone: "+91-381-2356700",
+  },
+  {
+    id: 8,
+    name: "Naharlagun / Itanagar Staging Hub",
+    hub_type: "FORWARD_DEPOT",
+    state: "Arunachal Pradesh",
+    latitude: 27.0600,
+    longitude: 93.7000,
+    capacity_tonnes: 180.0,
+    is_emergency_depot: true,
+    contact_phone: "+91-360-2212900",
+  },
+  {
+    id: 9,
+    name: "Gangtok Cold-Chain Depot",
+    hub_type: "FORWARD_DEPOT",
+    state: "Sikkim",
+    latitude: 27.3389,
+    longitude: 88.6065,
+    capacity_tonnes: 160.0,
+    is_emergency_depot: true,
+    contact_phone: "+91-359-2202300",
+  },
 ];
 
-// 5. Vehicles Telemetry (schemas/vehicle.py)
+// 7. Fleet Telemetry Convoys active across Northeast India
 export const mockVehicles = [
   {
     id: 1,
     registration_number: "AS-01-GC-4421",
-    vehicle_type: "4x4 Mountain Truck",
-    capacity_kg: 7500.0,
-    driver_name: "Tenzing Laskar",
-    driver_phone: "+91-98640-12345",
-    assigned_hub_id: 1,
-    fuel_level_percent: 82.5,
+    vehicle_type: "4x4 Mountain Relief Truck",
     status: "IN_TRANSIT",
-    current_lat: 26.1200,
-    current_lng: 91.8200,
-    speed_kmh: 42.0,
-    heading_deg: 115.0,
-    last_telemetry_at: new Date().toISOString(),
+    current_lat: 25.9680,
+    current_lng: 91.9020,
+    speed_kmh: 42.5,
+    heading_deg: 165.0,
+    fuel_level_percent: 78.0,
+    driver_name: "Biren Gogoi",
+    driver_phone: "+91-94350-12345",
+    route_assigned: "Guwahati -> Shillong (NH-06)",
   },
   {
     id: 2,
-    registration_number: "ML-05-TR-9012",
-    vehicle_type: "Emergency Medical Tanker",
-    capacity_kg: 5000.0,
-    driver_name: "Bantei Marbaniang",
-    driver_phone: "+91-94361-98765",
-    assigned_hub_id: 2,
-    fuel_level_percent: 94.0,
-    status: "AVAILABLE",
-    current_lat: 25.5800,
-    current_lng: 91.8900,
-    speed_kmh: 0.0,
-    heading_deg: 0.0,
-    last_telemetry_at: new Date().toISOString(),
+    registration_number: "AS-03-BC-9012",
+    vehicle_type: "Heavy Multi-Axle Relief Convoy",
+    status: "IN_TRANSIT",
+    current_lat: 26.3450,
+    current_lng: 92.6840,
+    speed_kmh: 58.0,
+    heading_deg: 85.0,
+    fuel_level_percent: 85.0,
+    driver_name: "Pranab Saikia",
+    driver_phone: "+91-98640-54321",
+    route_assigned: "Guwahati -> Dibrugarh (NH-37)",
   },
   {
     id: 3,
-    registration_number: "AS-25-EC-1008",
-    vehicle_type: "Heavy Cargo Transporter",
-    capacity_kg: 16000.0,
-    driver_name: "Pranab Gogoi",
-    driver_phone: "+91-97060-55443",
-    assigned_hub_id: 1,
-    fuel_level_percent: 64.0,
+    registration_number: "ML-05-TK-1188",
+    vehicle_type: "Emergency Medical Mobile Van",
     status: "IN_TRANSIT",
-    current_lat: 26.2800,
-    current_lng: 92.4500,
-    speed_kmh: 52.0,
-    heading_deg: 92.0,
-    last_telemetry_at: new Date().toISOString(),
+    current_lat: 25.7500,
+    current_lng: 93.1700,
+    speed_kmh: 36.0,
+    heading_deg: 140.0,
+    fuel_level_percent: 92.0,
+    driver_name: "Kyrshan Marbaniang",
+    driver_phone: "+91-97740-99881",
+    route_assigned: "Umrangso Bypass Corridor (Diverted)",
   },
   {
     id: 4,
-    registration_number: "NL-07-MT-3301",
-    vehicle_type: "4x4 Mountain Truck",
-    capacity_kg: 6000.0,
-    driver_name: "Keviletuo Angami",
-    driver_phone: "+91-98560-22119",
-    assigned_hub_id: 4,
-    fuel_level_percent: 51.0,
+    registration_number: "NL-07-FT-3320",
+    vehicle_type: "Essential Food Grain Hauler",
     status: "IN_TRANSIT",
-    current_lat: 25.8200,
-    current_lng: 93.8400,
-    speed_kmh: 28.0,
-    heading_deg: 140.0,
-    last_telemetry_at: new Date().toISOString(),
+    current_lat: 25.7800,
+    current_lng: 93.9200,
+    speed_kmh: 18.0,
+    heading_deg: 130.0,
+    fuel_level_percent: 64.0,
+    driver_name: "Kevichusa Angami",
+    driver_phone: "+91-94360-77665",
+    route_assigned: "Dimapur -> Kohima Pass (NH-29)",
+  },
+  {
+    id: 5,
+    registration_number: "MZ-01-AR-5510",
+    vehicle_type: "Petroleum & Fuel Carrier",
+    status: "IN_TRANSIT",
+    current_lat: 24.5000,
+    current_lng: 92.7000,
+    speed_kmh: 30.0,
+    heading_deg: 190.0,
+    fuel_level_percent: 72.0,
+    driver_name: "Lalmuanpuia Sailo",
+    driver_phone: "+91-98623-11223",
+    route_assigned: "Silchar -> Aizawl Ascent (NH-306)",
   },
 ];
 
-// 6. Planned Routes from /api/v1/routes/plan
+// 8. Canonical AI Route Planning Response for Sonapur Bypass Scenario
 export const mockRoutePlanResponse = {
-  request_id: "req-ner-nh06-demo-001",
-  cargo_priority: "HIGH",
-  origin: { lat: 26.1445, lng: 91.7362 }, // Guwahati
-  destination: { lat: 24.8333, lng: 92.7930 }, // Silchar
+  plan_id: "ROUTE-PLAN-NER-2026-004",
+  generated_at: new Date().toISOString(),
+  origin: {
+    name: "Guwahati Central Depot (Assam)",
+    coordinates: [91.7362, 26.1445],
+  },
+  destination: {
+    name: "Silchar Forward Transit Depot (Barak Valley)",
+    coordinates: [92.7930, 24.8333],
+  },
   recommended_route: {
+    route_id: "ROUTE-SAFEST-BYPASS-02",
+    title: "NH-27 / Umrangso Strategic Bypass Corridor",
+    summary: "Guwahati -> Nagaon (NH-27) -> Umrangso -> Silchar (Barak Valley)",
     criterion: "SAFEST",
-    title: "Strategic Umrangso Bypass (Safest Route)",
-    summary: "Bypasses Sonapur Tunnel landslide block on NH-06 via NH-27 Nagaon & Lumding.",
-    distance_km: 348.5,
-    estimated_duration_hours: 7.8,
-    composite_risk_score: 0.16,
-    safety_score: 0.84,
-    estimated_delay_hours: 0.3,
+    distance_km: 342.5,
+    estimated_duration_hours: 8.5,
+    composite_risk_score: 0.18,
+    safety_score: 0.94,
+    estimated_delay_hours: 0.5,
     is_recommended: true,
     ai_explanation: [
-      "Completely bypasses Sonapur Tunnel landslide on NH-06 (Segment NH-06-MEGH-02).",
-      "Corridor evaluated at 96% passability for heavy trucks under current rainfall.",
-      "Direct connection to Silchar Relief Hub maintained.",
+      "Bypasses Sonapur Tunnel landslide on NH-06 with 0 blocked segments.",
+      "94% safety score over all-weather paved state highway via Umrangso.",
+      "Clear heavy vehicle clearance verified by Assam & Meghalaya transport authorities.",
     ],
     blocked_segments_count: 0,
     risky_segments_count: 1,
     geometry_coordinates: [
       [91.7362, 26.1445], // Guwahati
-      [92.1500, 26.2200],
       [92.6840, 26.3450], // Nagaon
-      [93.1700, 25.7500], // Lumding / Umrangso
-      [92.9500, 25.2000],
+      [93.1700, 25.7500], // Umrangso
       [92.7930, 24.8333], // Silchar
     ],
   },
-  alternative_routes: [
+  alternatives: [
     {
-      criterion: "FASTEST",
-      title: "Direct NH-06 Lifeline (Currently Blocked)",
-      summary: "Shortest distance but impassable due to Sonapur landslide.",
+      route_id: "ROUTE-PRIMARY-NH06-DIRECT",
+      title: "NH-06 Direct Lifeline (BLOCKED AT SONAPUR)",
+      summary: "Guwahati -> Shillong -> Sonapur Tunnel -> Jowai -> Silchar",
+      criterion: "FASTEST_THEORETICAL",
       distance_km: 285.7,
-      estimated_duration_hours: 15.4,
+      estimated_duration_hours: 22.0,
       composite_risk_score: 0.92,
-      safety_score: 0.08,
+      safety_score: 0.15,
       estimated_delay_hours: 14.5,
       is_recommended: false,
       ai_explanation: [
-        "Segment NH-06-MEGH-02 currently BLOCKED by 200m debris flow.",
-        "Total stoppage for heavy vehicles until clearance.",
+        "CRITICAL: Sonapur Tunnel segment NH-06-MEGH-02 is 100% BLOCKED by landslide.",
+        "Estimated clearance delay: 14.5 hours. Strictly avoided by AI planner.",
       ],
       blocked_segments_count: 1,
       risky_segments_count: 1,
       geometry_coordinates: [
         [91.7362, 26.1445], // Guwahati
         [91.8760, 26.1080], // Jorabat
-        [91.9020, 25.9680], // Nongpoh
         [91.8833, 25.5788], // Shillong
         [92.2167, 25.4500], // Jowai
         [92.7930, 24.8333], // Silchar
-      ],
-    },
-    {
-      criterion: "PRIORITY",
-      title: "Armed Escort Convoy Route",
-      summary: "Restricted priority corridor with tactical support.",
-      distance_km: 350.0,
-      estimated_duration_hours: 8.0,
-      composite_risk_score: 0.22,
-      safety_score: 0.78,
-      estimated_delay_hours: 0.5,
-      is_recommended: false,
-      ai_explanation: [
-        "Dedicated logistics escort through Assam Rifles checkpoint.",
-      ],
-      blocked_segments_count: 0,
-      risky_segments_count: 1,
-      geometry_coordinates: [
-        [91.7362, 26.1445],
-        [92.6840, 26.3450],
-        [93.1700, 25.7500],
-        [92.7930, 24.8333],
       ],
     },
   ],

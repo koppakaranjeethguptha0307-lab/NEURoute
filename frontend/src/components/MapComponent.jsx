@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { mockNerBoundaryGeoJSON, mockNerStateCapitals } from '../services/mockData';
 
 // Road status colors conforming to NEURote domain enum (OPEN, RISKY, BLOCKED, UNKNOWN)
 const ROAD_STYLES = {
@@ -63,6 +64,9 @@ const INCIDENT_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none
 const VEHICLE_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>`;
 const HUB_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
 
+// Geographic bounds of Northeast India (Sikkim to Arunachal & Mizoram/Tripura)
+const NER_STRICT_BOUNDS = L.latLngBounds([21.2, 87.5], [29.8, 97.6]);
+
 export const MapComponent = ({
   roadsGeoJSON,
   incidents,
@@ -79,8 +83,10 @@ export const MapComponent = ({
   const layerControlRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Layer groups refs
+  // Layer groups refs with dedicated NER Boundary and State Capitals layers
   const layersRef = useRef({
+    nerBoundary: L.layerGroup(),
+    nerCapitals: L.layerGroup(),
     roads: L.layerGroup(),
     incidents: L.layerGroup(),
     hazards: L.layerGroup(),
@@ -89,7 +95,7 @@ export const MapComponent = ({
     routes: L.layerGroup(),
   });
 
-  // 1. Map Initialization
+  // 1. Map Initialization with Northeast India Focus & Max Bounds
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
@@ -111,11 +117,23 @@ export const MapComponent = ({
       maxZoom: 17,
     });
 
-    // Create Map with OSM as default
+    // Create Map strictly centered and bounded to Northeast India
     const map = L.map(mapContainerRef.current, {
-      center: activeCenter || [25.8, 92.5],
-      zoom: activeZoom || 8,
-      layers: [osmLayer, layersRef.current.roads, layersRef.current.incidents, layersRef.current.routes, layersRef.current.vehicles],
+      center: activeCenter || [26.15, 93.0],
+      zoom: activeZoom || 7.2,
+      minZoom: 6.5,
+      maxZoom: 18,
+      maxBounds: NER_STRICT_BOUNDS,
+      maxBoundsViscosity: 0.92,
+      layers: [
+        osmLayer,
+        layersRef.current.nerBoundary,
+        layersRef.current.nerCapitals,
+        layersRef.current.roads,
+        layersRef.current.incidents,
+        layersRef.current.routes,
+        layersRef.current.vehicles,
+      ],
       zoomControl: false,
     });
 
@@ -131,8 +149,10 @@ export const MapComponent = ({
       'OpenTopo Terrain': terrainLayer,
     };
 
-    // Overlay layers controlled via Leaflet's own layer control (Rule 8)
+    // Overlay layers controlled via Leaflet's own layer control
     const overlayMaps = {
+      '🇮🇳 NER Regional Boundary': layersRef.current.nerBoundary,
+      '🏛️ NER State Capitals & Gateways': layersRef.current.nerCapitals,
       '🛣️ Road Segments (GeoJSON)': layersRef.current.roads,
       '⚠️ Active Incidents': layersRef.current.incidents,
       '⚡ Regional Hazard Zones': layersRef.current.hazards,
@@ -174,7 +194,93 @@ export const MapComponent = ({
     }
   };
 
-  // 2. Render Road Segments Layer (OPEN, RISKY, BLOCKED=red dashed, UNKNOWN)
+  // 2. Render Northeast India (NER) Boundary Outline Layer
+  useEffect(() => {
+    const boundaryLayer = layersRef.current.nerBoundary;
+    boundaryLayer.clearLayers();
+
+    if (!mockNerBoundaryGeoJSON) return;
+
+    const geoJsonLayer = L.geoJSON(mockNerBoundaryGeoJSON, {
+      style: {
+        color: '#0284c7', // High-tech Sky Blue / Cyan
+        weight: 2.5,
+        dashArray: '6, 6',
+        opacity: 0.85,
+        fillColor: '#0284c7',
+        fillOpacity: 0.03,
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties || {};
+        layer.bindPopup(`
+          <div style="min-width: 240px;">
+            <div class="popup-title" style="color: #38bdf8;">
+              🇮🇳 ${props.region_name || 'Northeast India (NER)'}
+            </div>
+            <div style="font-size:11px; color:#cbd5e1; margin-top:4px; line-height:1.4;">
+              ${props.description || ''}
+            </div>
+            <div style="margin-top:6px; font-size:11px; color:#94a3b8;">
+              <strong>8 States:</strong> ${props.states ? props.states.join(', ') : 'All NER'}
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
+              <strong>Total Theater Area:</strong> 262,179 km²
+            </div>
+            <div style="font-size:11px; color:#fbbf24; margin-top:2px; font-weight:600;">
+              98% International Border Perimeter (Bangladesh, Bhutan, China, Myanmar)
+            </div>
+          </div>
+        `);
+      },
+    });
+
+    boundaryLayer.addLayer(geoJsonLayer);
+  }, []);
+
+  // 3. Render Northeast India 8 State Capitals & Strategic Gateways Layer
+  useEffect(() => {
+    const capitalsLayer = layersRef.current.nerCapitals;
+    capitalsLayer.clearLayers();
+
+    if (!mockNerStateCapitals || !mockNerStateCapitals.length) return;
+
+    mockNerStateCapitals.forEach((cap) => {
+      const isGateway = cap.is_main_gateway;
+      const html = `
+        <div class="ner-capital-marker ${isGateway ? 'gateway' : ''}">
+          <div class="capital-dot"></div>
+          <div class="capital-label">${cap.name.split('/')[0]}</div>
+        </div>
+      `;
+
+      const icon = L.divIcon({
+        html,
+        className: 'custom-capital-icon',
+        iconSize: [110, 26],
+        iconAnchor: [55, 13],
+        popupAnchor: [0, -12],
+      });
+
+      const marker = L.marker(cap.coordinates, { icon });
+      marker.bindPopup(`
+        <div style="min-width: 210px;">
+          <div class="popup-title" style="color: #38bdf8;">
+            🏛️ ${cap.name} (${cap.state})
+          </div>
+          <div style="font-size:11px; color:#f59e0b; font-weight:600; margin-top:2px;">
+            ${cap.tag}
+          </div>
+          <div style="font-size:11px; color:#cbd5e1; margin-top:4px; line-height:1.4;">
+            ${cap.description}
+          </div>
+        </div>
+      `);
+
+      capitalsLayer.addLayer(marker);
+    });
+  }, []);
+
+  // 4. Render Road Segments Layer (OPEN, RISKY, BLOCKED=red dashed, UNKNOWN)
   useEffect(() => {
     const roadsLayer = layersRef.current.roads;
     roadsLayer.clearLayers();
@@ -201,6 +307,7 @@ export const MapComponent = ({
             <table style="width:100%; font-size:11px; border-collapse:collapse; margin-top:6px;">
               <tr><td style="color:#94a3b8; padding:2px 0;">Code:</td><td style="font-weight:600;">${p.segment_code || 'N/A'}</td></tr>
               <tr><td style="color:#94a3b8; padding:2px 0;">Highway:</td><td style="font-weight:600;">${p.highway_number || 'N/A'}</td></tr>
+              ${p.state ? `<tr><td style="color:#94a3b8; padding:2px 0;">State:</td><td style="font-weight:600; color:#38bdf8;">${p.state}</td></tr>` : ''}
               <tr><td style="color:#94a3b8; padding:2px 0;">Status:</td><td style="font-weight:700; color:${
                 status === 'BLOCKED' ? '#f87171' : status === 'RISKY' ? '#fbbf24' : '#34d399'
               };">${status}</td></tr>
