@@ -11,64 +11,220 @@
  * - backend/app/models/hub.py & hazard.py
  */
 
-// 1. Northeast India (NER) Regional Boundary Polygon
-export const mockNerBoundaryGeoJSON = {
+// 1. Northeast India (NER) 8 Individual State Boundaries (GeoJSON FeatureCollection)
+export const mockNer8StatesGeoJSON = {
   type: "FeatureCollection",
   features: [
+    // 1. SIKKIM
     {
       type: "Feature",
-      id: "NER-BOUNDARY",
+      id: "STATE-SK",
       geometry: {
         type: "Polygon",
         coordinates: [
           [
-            [88.00, 27.80], // Northwest Sikkim
-            [88.90, 28.10], // North Sikkim border
-            [88.75, 27.05], // Sikkim-Bengal border
-            [89.70, 26.75], // Bhutan south border / Assam
-            [91.60, 26.85], // Western Assam
-            [92.10, 27.85], // West Kameng (Arunachal)
-            [92.00, 28.35], // Tawang / McMahon Line
-            [94.20, 29.05], // Upper Siang
-            [96.40, 29.40], // Dibang Valley
-            [97.40, 28.30], // Anjaw / Kibithu easternmost tip
-            [97.10, 27.50], // Changlang
-            [95.75, 26.95], // Tirap border
-            [95.10, 26.25], // Mon (Nagaland)
-            [94.50, 25.50], // Kohima / Phek
-            [94.30, 24.10], // Chandel (Manipur border)
-            [93.30, 23.80], // Champhai (Mizoram)
-            [93.10, 22.00], // Southernmost Mizoram tip
-            [92.50, 22.25], // Lawngtlai
-            [92.20, 23.35], // Mamit / Tripura border
-            [91.30, 23.30], // South Tripura / Sabroom
-            [91.15, 24.15], // Agartala
-            [92.10, 24.60], // Karimganj (Assam)
-            [92.30, 25.10], // Jaintia Hills (Meghalaya)
-            [91.20, 25.15], // South Garo Hills
-            [89.85, 25.65], // West Garo Hills (Dhubri border)
-            [89.80, 26.35], // Dhubri / Kokrajhar
-            [88.35, 26.55], // Siliguri Corridor ("Chicken's Neck")
-            [88.00, 27.80], // Closing back at Sikkim
+            [88.05, 27.80], [88.20, 28.12], [88.75, 28.10], [88.88, 27.85],
+            [88.70, 27.15], [88.52, 27.08], [88.20, 27.10], [88.05, 27.80],
           ],
         ],
       },
       properties: {
-        region_name: "Northeast India (NER) Operational Theater",
-        states_count: 8,
-        states: [
-          "Assam",
-          "Meghalaya",
-          "Arunachal Pradesh",
-          "Nagaland",
-          "Manipur",
-          "Mizoram",
-          "Tripura",
-          "Sikkim",
+        state_code: "SK",
+        state_name: "Sikkim",
+        capital: "Gangtok",
+        area_sqkm: 7096,
+        color: "#38bdf8", // Sky blue
+        fill_color: "rgba(56, 189, 248, 0.12)",
+        primary_lifelines: ["NH-10 (Siliguri - Gangtok)", "NH-717A (Alternate)"],
+        strategic_role: "Himalayan Mountain Corridor & Chicken's Neck Gateway",
+        active_hotspots: "29th Mile Teesta Sinking Corridor",
+      },
+    },
+    // 2. ARUNACHAL PRADESH
+    {
+      type: "Feature",
+      id: "STATE-AR",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [91.65, 26.85], [92.05, 27.85], [91.80, 28.35], [92.50, 28.50],
+            [93.50, 28.80], [94.50, 29.10], [96.00, 29.45], [97.35, 28.30],
+            [97.05, 27.60], [96.20, 27.20], [95.70, 26.90], [95.20, 27.10],
+            [94.20, 27.50], [93.70, 27.10], [93.10, 27.00], [92.30, 26.90],
+            [91.65, 26.85],
+          ],
         ],
-        area_sqkm: 262179,
-        international_borders: ["Bangladesh", "Bhutan", "China (Tibet)", "Myanmar"],
-        description: "Strategic logistics theater covering 8 states connected to mainland India via the Siliguri Corridor.",
+      },
+      properties: {
+        state_code: "AR",
+        state_name: "Arunachal Pradesh",
+        capital: "Itanagar",
+        area_sqkm: 83743,
+        color: "#c084fc", // Purple
+        fill_color: "rgba(192, 132, 252, 0.10)",
+        primary_lifelines: ["NH-415 (Capital Link)", "NH-13 (Trans-Arunachal)", "NH-15"],
+        strategic_role: "Northern Frontier & Trans-Himalayan Border Lifelines",
+        active_hotspots: "Sessa Mountain Rockfall Corridor, Bhalukpong Pass",
+      },
+    },
+    // 3. ASSAM
+    {
+      type: "Feature",
+      id: "STATE-AS",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [89.70, 26.35], [90.20, 26.70], [91.60, 26.85], [92.30, 26.90],
+            [93.10, 27.00], [93.70, 27.10], [94.20, 27.50], [95.20, 27.10],
+            [95.70, 27.55], [96.00, 27.85], [95.80, 27.15], [94.90, 26.80],
+            [94.20, 26.35], [93.65, 25.80], [93.20, 25.75], [93.10, 24.85],
+            [92.80, 24.50], [92.25, 24.40], [92.15, 25.08], [92.70, 25.10],
+            [92.80, 25.35], [92.40, 25.85], [91.85, 26.05], [90.80, 25.95],
+            [89.85, 25.65], [89.70, 26.35],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "AS",
+        state_name: "Assam",
+        capital: "Guwahati / Dispur",
+        area_sqkm: 78438,
+        color: "#34d399", // Emerald Green
+        fill_color: "rgba(52, 211, 153, 0.10)",
+        primary_lifelines: ["NH-27 (East-West Corridor)", "NH-37 (Brahmaputra Trunk)", "NH-06 Gateway"],
+        strategic_role: "Central Logistical Artery & Gateway to all 7 Sister States",
+        active_hotspots: "Barak Basin Inundation Plain, Dima Hasao Sinking Zone",
+      },
+    },
+    // 4. MEGHALAYA
+    {
+      type: "Feature",
+      id: "STATE-ML",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [89.85, 25.65], [90.80, 25.95], [91.85, 26.05], [92.40, 25.85],
+            [92.80, 25.35], [92.70, 25.10], [92.15, 25.08], [91.20, 25.15],
+            [90.40, 25.18], [89.85, 25.65],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "ML",
+        state_name: "Meghalaya",
+        capital: "Shillong",
+        area_sqkm: 22429,
+        color: "#fbbf24", // Amber
+        fill_color: "rgba(251, 191, 36, 0.12)",
+        primary_lifelines: ["NH-06 (Shillong-Silchar)", "NH-106", "NH-206"],
+        strategic_role: "High-Altitude Central Plateau & Monsoon Vulnerability Chokepoints",
+        active_hotspots: "Sonapur Tunnel Landslide Slope, Jowai Runoff",
+      },
+    },
+    // 5. NAGALAND
+    {
+      type: "Feature",
+      id: "STATE-NL",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [93.65, 25.80], [94.20, 26.35], [94.85, 26.90], [95.25, 27.05],
+            [95.20, 26.40], [94.80, 25.70], [94.45, 25.50], [93.85, 25.55],
+            [93.65, 25.80],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "NL",
+        state_name: "Nagaland",
+        capital: "Kohima",
+        area_sqkm: 16579,
+        color: "#f472b6", // Rose Pink
+        fill_color: "rgba(244, 114, 182, 0.10)",
+        primary_lifelines: ["NH-29 (Dimapur-Kohima)", "NH-02", "NH-129A"],
+        strategic_role: "Central Mountain Pass & Railhead Freight Transit",
+        active_hotspots: "Paglapahar Sinking & Slide Zone, Zubza Pass",
+      },
+    },
+    // 6. MANIPUR
+    {
+      type: "Feature",
+      id: "STATE-MN",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [93.15, 25.15], [93.90, 25.60], [94.45, 25.50], [94.60, 24.85],
+            [94.30, 24.10], [93.80, 23.85], [93.10, 24.25], [93.15, 25.15],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "MN",
+        state_name: "Manipur",
+        capital: "Imphal",
+        area_sqkm: 22327,
+        color: "#22d3ee", // Cyan
+        fill_color: "rgba(34, 211, 238, 0.10)",
+        primary_lifelines: ["NH-02 (Imphal-Kohima)", "NH-37 (Imphal-Jiribam)", "Asian Highway 1"],
+        strategic_role: "Eastern Border Valley & International Transit Gateway",
+        active_hotspots: "Mao Gate Mountain Slope Failures, Senapati Washouts",
+      },
+    },
+    // 7. MIZORAM
+    {
+      type: "Feature",
+      id: "STATE-MZ",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [92.50, 24.45], [93.10, 24.25], [93.30, 23.80], [93.25, 22.75],
+            [93.00, 22.00], [92.65, 22.25], [92.35, 23.00], [92.20, 23.65],
+            [92.50, 24.45],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "MZ",
+        state_name: "Mizoram",
+        capital: "Aizawl",
+        area_sqkm: 21081,
+        color: "#a78bfa", // Violet
+        fill_color: "rgba(167, 139, 250, 0.10)",
+        primary_lifelines: ["NH-306 (Silchar-Aizawl)", "NH-06 South", "NH-102B"],
+        strategic_role: "Southern Ridge Artery & Kaladan Multi-Modal Corridor",
+        active_hotspots: "Kolasib Mudflow Hazard Belt, Hunthar Sinking Zone",
+      },
+    },
+    // 8. TRIPURA
+    {
+      type: "Feature",
+      id: "STATE-TR",
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [91.20, 24.45], [91.80, 24.50], [92.25, 24.40], [92.35, 23.80],
+            [91.95, 23.30], [91.45, 22.95], [91.20, 23.50], [91.15, 24.15],
+            [91.20, 24.45],
+          ],
+        ],
+      },
+      properties: {
+        state_code: "TR",
+        state_name: "Tripura",
+        capital: "Agartala",
+        area_sqkm: 10486,
+        color: "#2dd4bf", // Teal
+        fill_color: "rgba(45, 212, 191, 0.11)",
+        primary_lifelines: ["NH-08 (Assam-Agartala)", "NH-108", "NH-208"],
+        strategic_role: "Southwest Plain Gateway & Trans-Border Trade Hub",
+        active_hotspots: "Churaibari Border Inundations, Atharamura Hills",
       },
     },
   ],
@@ -787,22 +943,24 @@ export const mockVehicles = [
   },
 ];
 
-// 8. Canonical AI Route Planning Response for Sonapur Bypass Scenario
+// 8. Canonical AI Route Planning Response with Enhanced Waypoints & Multi-Route Intelligence
 export const mockRoutePlanResponse = {
   plan_id: "ROUTE-PLAN-NER-2026-004",
   generated_at: new Date().toISOString(),
   origin: {
-    name: "Guwahati Central Depot (Assam)",
+    name: "Guwahati Central Logistics Park (Assam)",
     coordinates: [91.7362, 26.1445],
+    landmark: "Khanapara Major Freight Interchange",
   },
   destination: {
-    name: "Silchar Forward Transit Depot (Barak Valley)",
+    name: "Silchar Forward Transit Relief Depot (Barak Valley)",
     coordinates: [92.7930, 24.8333],
+    landmark: "ISBT Ramnagar Relief Center",
   },
   recommended_route: {
     route_id: "ROUTE-SAFEST-BYPASS-02",
     title: "NH-27 / Umrangso Strategic Bypass Corridor",
-    summary: "Guwahati -> Nagaon (NH-27) -> Umrangso -> Silchar (Barak Valley)",
+    summary: "Guwahati -> Nagaon (NH-27) -> Lanka -> Umrangso Bypass -> Haflong -> Silchar",
     criterion: "SAFEST",
     distance_km: 342.5,
     estimated_duration_hours: 8.5,
@@ -811,16 +969,27 @@ export const mockRoutePlanResponse = {
     estimated_delay_hours: 0.5,
     is_recommended: true,
     ai_explanation: [
-      "Bypasses Sonapur Tunnel landslide on NH-06 with 0 blocked segments.",
-      "94% safety score over all-weather paved state highway via Umrangso.",
-      "Clear heavy vehicle clearance verified by Assam & Meghalaya transport authorities.",
+      "Bypasses Sonapur Tunnel landslide on NH-06 with 0 blocked bottlenecks.",
+      "94% safety score over all-weather paved state highway via Umrangso & Haflong.",
+      "Clear heavy vehicle & emergency convoy clearance verified by Assam & Meghalaya transport authorities.",
     ],
     blocked_segments_count: 0,
     risky_segments_count: 1,
+    waypoints: [
+      { name: "Guwahati Gateway Hub (Origin)", coordinates: [91.7362, 26.1445], type: "ORIGIN" },
+      { name: "Nagaon East-West Junction", coordinates: [92.6840, 26.3450], type: "TRANSIT" },
+      { name: "Lanka Supply Depot", coordinates: [92.9500, 25.9200], type: "TRANSIT" },
+      { name: "Umrangso Mountain Strategic Pass", coordinates: [93.1700, 25.7500], type: "STRATEGIC_PASS" },
+      { name: "Haflong Valley Corridor", coordinates: [93.0200, 25.1800], type: "TRANSIT" },
+      { name: "Silchar Relief Depot (Destination)", coordinates: [92.7930, 24.8333], type: "DESTINATION" },
+    ],
     geometry_coordinates: [
       [91.7362, 26.1445], // Guwahati
+      [92.1500, 26.2200], // Jagiroad
       [92.6840, 26.3450], // Nagaon
+      [92.9500, 25.9200], // Lanka
       [93.1700, 25.7500], // Umrangso
+      [93.0200, 25.1800], // Haflong
       [92.7930, 24.8333], // Silchar
     ],
   },
@@ -828,7 +997,7 @@ export const mockRoutePlanResponse = {
     {
       route_id: "ROUTE-PRIMARY-NH06-DIRECT",
       title: "NH-06 Direct Lifeline (BLOCKED AT SONAPUR)",
-      summary: "Guwahati -> Shillong -> Sonapur Tunnel -> Jowai -> Silchar",
+      summary: "Guwahati -> Shillong -> Sonapur Tunnel (BLOCKED) -> Jowai -> Silchar",
       criterion: "FASTEST_THEORETICAL",
       distance_km: 285.7,
       estimated_duration_hours: 22.0,
@@ -837,16 +1006,26 @@ export const mockRoutePlanResponse = {
       estimated_delay_hours: 14.5,
       is_recommended: false,
       ai_explanation: [
-        "CRITICAL: Sonapur Tunnel segment NH-06-MEGH-02 is 100% BLOCKED by landslide.",
+        "CRITICAL: Sonapur Tunnel segment NH-06-MEGH-02 is 100% BLOCKED by rockfall & landslide.",
         "Estimated clearance delay: 14.5 hours. Strictly avoided by AI planner.",
       ],
       blocked_segments_count: 1,
       risky_segments_count: 1,
+      waypoints: [
+        { name: "Guwahati Gateway Hub (Origin)", coordinates: [91.7362, 26.1445], type: "ORIGIN" },
+        { name: "Jorabat Gateway", coordinates: [91.8760, 26.1080], type: "TRANSIT" },
+        { name: "Shillong Plateau", coordinates: [91.8833, 25.5788], type: "TRANSIT" },
+        { name: "Sonapur Tunnel Landslide Blockage", coordinates: [91.8950, 25.7520], type: "BLOCKED_POINT" },
+        { name: "Jowai Junction", coordinates: [92.2167, 25.4500], type: "TRANSIT" },
+        { name: "Silchar Relief Depot (Destination)", coordinates: [92.7930, 24.8333], type: "DESTINATION" },
+      ],
       geometry_coordinates: [
         [91.7362, 26.1445], // Guwahati
         [91.8760, 26.1080], // Jorabat
         [91.8833, 25.5788], // Shillong
+        [91.8950, 25.7520], // Sonapur Blockage
         [92.2167, 25.4500], // Jowai
+        [92.4833, 25.1333], // Lad Rymbai
         [92.7930, 24.8333], // Silchar
       ],
     },

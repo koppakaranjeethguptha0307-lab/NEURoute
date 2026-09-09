@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { Maximize2, Minimize2 } from 'lucide-react';
-import { mockNerBoundaryGeoJSON, mockNerStateCapitals } from '../services/mockData';
+import { mockNer8StatesGeoJSON, mockNerStateCapitals } from '../services/mockData';
 
 // Road status colors conforming to NEURote domain enum (OPEN, RISKY, BLOCKED, UNKNOWN)
 const ROAD_STYLES = {
@@ -83,9 +83,9 @@ export const MapComponent = ({
   const layerControlRef = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Layer groups refs with dedicated NER Boundary and State Capitals layers
+  // Layer groups refs with dedicated 8 NER State Boundaries and State Capitals layers
   const layersRef = useRef({
-    nerBoundary: L.layerGroup(),
+    nerStates: L.layerGroup(),
     nerCapitals: L.layerGroup(),
     roads: L.layerGroup(),
     incidents: L.layerGroup(),
@@ -117,7 +117,7 @@ export const MapComponent = ({
       maxZoom: 17,
     });
 
-    // Create Map strictly centered and bounded to Northeast India
+    // Create Map strictly centered and bounded to Northeast India with 8 State Boundaries enabled
     const map = L.map(mapContainerRef.current, {
       center: activeCenter || [26.15, 93.0],
       zoom: activeZoom || 7.2,
@@ -127,7 +127,7 @@ export const MapComponent = ({
       maxBoundsViscosity: 0.92,
       layers: [
         osmLayer,
-        layersRef.current.nerBoundary,
+        layersRef.current.nerStates,
         layersRef.current.nerCapitals,
         layersRef.current.roads,
         layersRef.current.incidents,
@@ -151,7 +151,7 @@ export const MapComponent = ({
 
     // Overlay layers controlled via Leaflet's own layer control
     const overlayMaps = {
-      '🇮🇳 NER Regional Boundary': layersRef.current.nerBoundary,
+      '🗺️ 8 NER State Boundaries': layersRef.current.nerStates,
       '🏛️ NER State Capitals & Gateways': layersRef.current.nerCapitals,
       '🛣️ Road Segments (GeoJSON)': layersRef.current.roads,
       '⚠️ Active Incidents': layersRef.current.incidents,
@@ -194,47 +194,76 @@ export const MapComponent = ({
     }
   };
 
-  // 2. Render Northeast India (NER) Boundary Outline Layer
+  // 2. Render Northeast India 8 State Boundaries Layer (Visible, Distinct & Interactive)
   useEffect(() => {
-    const boundaryLayer = layersRef.current.nerBoundary;
-    boundaryLayer.clearLayers();
+    const statesLayer = layersRef.current.nerStates;
+    statesLayer.clearLayers();
 
-    if (!mockNerBoundaryGeoJSON) return;
+    if (!mockNer8StatesGeoJSON || !mockNer8StatesGeoJSON.features) return;
 
-    const geoJsonLayer = L.geoJSON(mockNerBoundaryGeoJSON, {
-      style: {
-        color: '#0284c7', // High-tech Sky Blue / Cyan
-        weight: 2.5,
-        dashArray: '6, 6',
-        opacity: 0.85,
-        fillColor: '#0284c7',
-        fillOpacity: 0.03,
+    const geoJsonLayer = L.geoJSON(mockNer8StatesGeoJSON, {
+      style: (feature) => {
+        const props = feature.properties || {};
+        return {
+          color: props.color || '#38bdf8',
+          weight: 2.5,
+          dashArray: '5, 5',
+          opacity: 0.95,
+          fillColor: props.color || '#0284c7',
+          fillOpacity: 0.08,
+        };
       },
       onEachFeature: (feature, layer) => {
-        const props = feature.properties || {};
+        const p = feature.properties || {};
+
+        // Interactive hover highlights
+        layer.on('mouseover', (e) => {
+          const target = e.target;
+          target.setStyle({
+            weight: 4,
+            dashArray: null,
+            fillOpacity: 0.22,
+          });
+          target.bringToBack();
+        });
+
+        layer.on('mouseout', (e) => {
+          geoJsonLayer.resetStyle(e.target);
+        });
+
+        // Visible State center label
+        layer.bindTooltip(
+          `<div class="ner-state-tooltip">
+            <span>${p.state_name}</span>
+            <span class="state-code-badge">${p.state_code}</span>
+          </div>`,
+          { permanent: true, direction: 'center', className: 'state-boundary-label' }
+        );
+
+        // State Profile Popup
         layer.bindPopup(`
           <div style="min-width: 240px;">
-            <div class="popup-title" style="color: #38bdf8;">
-              🇮🇳 ${props.region_name || 'Northeast India (NER)'}
+            <div class="popup-title" style="color: ${p.color};">
+              🏛️ ${p.state_name} (${p.state_code})
+            </div>
+            <div style="font-size:11px; color:#f59e0b; font-weight:600; margin-top:2px;">
+              Capital: ${p.capital} • Area: ${p.area_sqkm.toLocaleString()} km²
             </div>
             <div style="font-size:11px; color:#cbd5e1; margin-top:4px; line-height:1.4;">
-              ${props.description || ''}
+              ${p.strategic_role}
             </div>
             <div style="margin-top:6px; font-size:11px; color:#94a3b8;">
-              <strong>8 States:</strong> ${props.states ? props.states.join(', ') : 'All NER'}
+              <strong>Critical Lifelines:</strong> ${(p.primary_lifelines || []).join(', ')}
             </div>
-            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">
-              <strong>Total Theater Area:</strong> 262,179 km²
-            </div>
-            <div style="font-size:11px; color:#fbbf24; margin-top:2px; font-weight:600;">
-              98% International Border Perimeter (Bangladesh, Bhutan, China, Myanmar)
+            <div style="font-size:11px; color:#f87171; margin-top:3px;">
+              <strong>Active Hazard Zones:</strong> ${p.active_hotspots || 'Monitored'}
             </div>
           </div>
         `);
       },
     });
 
-    boundaryLayer.addLayer(geoJsonLayer);
+    statesLayer.addLayer(geoJsonLayer);
   }, []);
 
   // 3. Render Northeast India 8 State Capitals & Strategic Gateways Layer
@@ -504,13 +533,86 @@ export const MapComponent = ({
     });
   }, [vehicles, onSelectEntity]);
 
-  // 7. Render AI Routes Layer
+  // 7. Render AI Routes Layer with Glowing Halos, Animated Flow, and Waypoint Beacons
   useEffect(() => {
     const routesLayer = layersRef.current.routes;
     routesLayer.clearLayers();
 
     if (!routePlan) return;
 
+    // A. Render 🏁 Origin Radar Beacon
+    if (routePlan.origin && routePlan.origin.coordinates) {
+      const [oLng, oLat] = routePlan.origin.coordinates;
+      const originIcon = L.divIcon({
+        html: `
+          <div class="route-beacon-marker origin" title="ORIGIN: ${routePlan.origin.name}">
+            <div class="beacon-pulse"></div>
+            <div class="beacon-core">🏁</div>
+          </div>
+        `,
+        className: 'custom-beacon-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
+      });
+
+      const originMarker = L.marker([oLat, oLng], { icon: originIcon });
+      originMarker.bindPopup(`
+        <div style="min-width: 220px;">
+          <div class="popup-title" style="color: #10b981;">
+            🏁 Convoy Origin Terminal
+          </div>
+          <div style="font-weight:700; font-size:12px; color:#fff; margin-top:2px;">
+            ${routePlan.origin.name}
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:4px;">
+            ${routePlan.origin.landmark || 'Primary Dispatch Terminal'}
+          </div>
+          <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-family:var(--font-mono);">
+            Coordinates: ${oLat.toFixed(4)}°N, ${oLng.toFixed(4)}°E
+          </div>
+        </div>
+      `);
+      routesLayer.addLayer(originMarker);
+    }
+
+    // B. Render 🎯 Destination Radar Beacon
+    if (routePlan.destination && routePlan.destination.coordinates) {
+      const [dLng, dLat] = routePlan.destination.coordinates;
+      const destIcon = L.divIcon({
+        html: `
+          <div class="route-beacon-marker dest" title="DESTINATION: ${routePlan.destination.name}">
+            <div class="beacon-pulse"></div>
+            <div class="beacon-core">🎯</div>
+          </div>
+        `,
+        className: 'custom-beacon-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16],
+      });
+
+      const destMarker = L.marker([dLat, dLng], { icon: destIcon });
+      destMarker.bindPopup(`
+        <div style="min-width: 220px;">
+          <div class="popup-title" style="color: #06b6d4;">
+            🎯 Relief Delivery Destination
+          </div>
+          <div style="font-weight:700; font-size:12px; color:#fff; margin-top:2px;">
+            ${routePlan.destination.name}
+          </div>
+          <div style="font-size:11px; color:#94a3b8; margin-top:4px;">
+            ${routePlan.destination.landmark || 'Emergency Forward Supply Terminal'}
+          </div>
+          <div style="font-size:10px; color:#38bdf8; margin-top:4px; font-family:var(--font-mono);">
+            Coordinates: ${dLat.toFixed(4)}°N, ${dLng.toFixed(4)}°E
+          </div>
+        </div>
+      `);
+      routesLayer.addLayer(destMarker);
+    }
+
+    // C. Render Multi-Layered Glowing Route Polylines
     const allRoutes = [];
     if (routePlan.recommended_route) {
       allRoutes.push(routePlan.recommended_route);
@@ -523,51 +625,53 @@ export const MapComponent = ({
       if (!route.geometry_coordinates || !route.geometry_coordinates.length) return;
 
       const latLngs = route.geometry_coordinates.map((coord) => [coord[1], coord[0]]);
+      const isSafest = route.criterion === 'SAFEST' || route.is_recommended;
+      const isBlocked = route.blocked_segments_count > 0;
 
-      let strokeColor = '#3b82f6';
-      let dashPattern = null;
-      let strokeWidth = 4;
-
-      if (route.criterion === 'SAFEST') {
-        strokeColor = '#10b981'; // Emerald Green
-        strokeWidth = 5.5;
-      } else if (route.criterion === 'FASTEST') {
-        strokeColor = route.blocked_segments_count > 0 ? '#ef4444' : '#f59e0b';
-        dashPattern = route.blocked_segments_count > 0 ? '6, 8' : null;
-        strokeWidth = 4;
-      } else if (route.criterion === 'PRIORITY') {
-        strokeColor = '#06b6d4'; // Cyan
-        strokeWidth = 4.5;
-      }
-
-      const polyline = L.polyline(latLngs, {
-        color: strokeColor,
-        weight: strokeWidth,
-        opacity: route.is_recommended ? 0.95 : 0.65,
-        dashArray: dashPattern,
+      // 1. Glowing Halo Underlayer
+      const glowColor = isSafest ? 'rgba(16, 185, 129, 0.35)' : isBlocked ? 'rgba(239, 68, 68, 0.30)' : 'rgba(59, 130, 246, 0.25)';
+      const glowPolyline = L.polyline(latLngs, {
+        color: glowColor,
+        weight: isSafest ? 12 : 9,
+        opacity: 0.9,
         lineCap: 'round',
+        interactive: false,
+      });
+      routesLayer.addLayer(glowPolyline);
+
+      // 2. High-Definition Animated Flow Core Line
+      const coreColor = isSafest ? '#10b981' : isBlocked ? '#ef4444' : '#38bdf8';
+      const corePolyline = L.polyline(latLngs, {
+        color: coreColor,
+        weight: isSafest ? 5.5 : 4.5,
+        opacity: 0.95,
+        dashArray: isBlocked ? '8, 8' : '12, 10',
+        lineCap: 'round',
+        className: isSafest ? 'animated-route-flow' : isBlocked ? 'blocked-route-line' : '',
       });
 
       const popupContent = `
-        <div style="min-width: 240px;">
-          <div class="popup-title" style="color:${strokeColor};">
-            ${route.is_recommended ? '⭐ RECOMMENDED: ' : ''}${route.title || 'Route Option'}
+        <div style="min-width: 250px;">
+          <div class="popup-title" style="color:${coreColor};">
+            ${route.is_recommended ? '⭐ RECOMMENDED BY AI: ' : isBlocked ? '⚠️ BLOCKED DIRECT ROUTE: ' : ''}${route.title || 'Route Option'}
           </div>
-          <div style="font-size:11px; color:#cbd5e1; margin-bottom:6px;">${route.summary || ''}</div>
+          <div style="font-size:11px; color:#cbd5e1; margin-bottom:6px; line-height:1.4;">
+            ${route.summary || ''}
+          </div>
           <table style="width:100%; font-size:11px; border-collapse:collapse;">
-            <tr><td style="color:#94a3b8; padding:2px 0;">Criterion:</td><td style="font-weight:700; color:${strokeColor};">${route.criterion}</td></tr>
-            <tr><td style="color:#94a3b8; padding:2px 0;">Distance:</td><td style="font-weight:600;">${route.distance_km} km</td></tr>
-            <tr><td style="color:#94a3b8; padding:2px 0;">Est Duration:</td><td>${route.estimated_duration_hours} hrs</td></tr>
-            <tr><td style="color:#94a3b8; padding:2px 0;">Safety Score:</td><td>${route.safety_score * 100}%</td></tr>
-            <tr><td style="color:#94a3b8; padding:2px 0;">Delay Hours:</td><td>+${route.estimated_delay_hours} hrs</td></tr>
-            <tr><td style="color:#94a3b8; padding:2px 0;">Blocked Bottlenecks:</td><td style="color:${route.blocked_segments_count > 0 ? '#ef4444' : '#10b981'}; font-weight:600;">${route.blocked_segments_count}</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Routing Mode:</td><td style="font-weight:700; color:${coreColor};">${route.criterion}</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Total Distance:</td><td style="font-weight:600;">${route.distance_km} km</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Transit Duration:</td><td>${route.estimated_duration_hours} hrs</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Safety Score:</td><td style="color:${route.safety_score >= 0.8 ? '#34d399' : '#f87171'}; font-weight:700;">${(route.safety_score * 100).toFixed(0)}%</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Expected Delay:</td><td>+${route.estimated_delay_hours} hrs</td></tr>
+            <tr><td style="color:#94a3b8; padding:2px 0;">Blocked Bottlenecks:</td><td style="color:${isBlocked ? '#ef4444' : '#10b981'}; font-weight:700;">${route.blocked_segments_count}</td></tr>
           </table>
           ${
             route.ai_explanation && route.ai_explanation.length
               ? `
-              <div style="margin-top:6px; border-top:1px solid #334155; padding-top:4px;">
-                <div style="font-size:10px; color:#94a3b8; font-weight:600; text-transform:uppercase;">AI Rationale:</div>
-                <ul style="padding-left:14px; font-size:10px; color:#e2e8f0; margin-top:2px;">
+              <div style="margin-top:8px; border-top:1px solid #334155; padding-top:6px;">
+                <div style="font-size:10px; color:#38bdf8; font-weight:700; text-transform:uppercase;">AI Route Intelligence Rationale:</div>
+                <ul style="padding-left:14px; font-size:10px; color:#e2e8f0; margin-top:3px; line-height:1.4;">
                   ${route.ai_explanation.map((e) => `<li>${e}</li>`).join('')}
                 </ul>
               </div>
@@ -576,15 +680,69 @@ export const MapComponent = ({
           }
         </div>
       `;
-      polyline.bindPopup(popupContent);
+      corePolyline.bindPopup(popupContent);
 
-      polyline.on('click', () => {
+      corePolyline.on('click', () => {
         if (onSelectEntity) {
           onSelectEntity({ type: 'route', data: route });
         }
       });
 
-      routesLayer.addLayer(polyline);
+      routesLayer.addLayer(corePolyline);
+
+      // D. Intermediate Waypoint Beacons along Route
+      if (route.waypoints && route.waypoints.length) {
+        route.waypoints.forEach((wp) => {
+          if (wp.type === 'ORIGIN' || wp.type === 'DESTINATION') return; // Handled above
+
+          if (wp.type === 'STRATEGIC_PASS') {
+            const passIcon = L.divIcon({
+              html: `
+                <div class="route-waypoint-badge" title="Strategic Mountain Bypass Pass">
+                  <span>⚡ ${wp.name}</span>
+                </div>
+              `,
+              className: 'custom-waypoint-icon',
+              iconSize: [160, 24],
+              iconAnchor: [80, 12],
+            });
+            const passMarker = L.marker([wp.coordinates[1], wp.coordinates[0]], { icon: passIcon });
+            passMarker.bindPopup(`
+              <div style="min-width: 200px;">
+                <div class="popup-title" style="color: #34d399;">⚡ ${wp.name}</div>
+                <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">
+                  All-weather paved mountain sector providing strategic alternate bypass around the Sonapur blockage.
+                </div>
+              </div>
+            `);
+            routesLayer.addLayer(passMarker);
+          } else if (wp.type === 'BLOCKED_POINT') {
+            const blockedIcon = L.divIcon({
+              html: `
+                <div class="route-beacon-marker blockage" title="CRITICAL: ${wp.name}">
+                  <div class="beacon-pulse"></div>
+                  <div class="beacon-core">⚠️</div>
+                </div>
+              `,
+              className: 'custom-beacon-icon',
+              iconSize: [32, 32],
+              iconAnchor: [16, 16],
+              popupAnchor: [0, -16],
+            });
+            const blockedMarker = L.marker([wp.coordinates[1], wp.coordinates[0]], { icon: blockedIcon });
+            blockedMarker.bindPopup(`
+              <div style="min-width: 220px;">
+                <div class="popup-title" style="color: #ef4444;">⚠️ Active Bottleneck Blockage</div>
+                <div style="font-weight:700; font-size:12px; color:#fff; margin-top:2px;">${wp.name}</div>
+                <div style="font-size:11px; color:#fca5a5; margin-top:4px;">
+                  Massive rockfall blocking both lanes. Clearance delay: +14.5 hours. Strictly avoided by AI routing.
+                </div>
+              </div>
+            `);
+            routesLayer.addLayer(blockedMarker);
+          }
+        });
+      }
     });
   }, [routePlan, onSelectEntity]);
 

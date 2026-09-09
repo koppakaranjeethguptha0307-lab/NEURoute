@@ -604,6 +604,162 @@ html, body, #root {
   letter-spacing: 0.2px;
 }
 
+/* 8 NER State Boundary Center Labels */
+.state-boundary-label {
+  background: rgba(15, 23, 42, 0.88) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  color: #f1f5f9 !important;
+  border-radius: 6px !important;
+  padding: 2px 7px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6) !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+}
+
+.state-boundary-label::before {
+  display: none !important;
+}
+
+.ner-state-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.state-code-badge {
+  background: rgba(6, 182, 212, 0.3);
+  color: #38bdf8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+/* Enhanced Route Visualization: Animated Flow & Glowing Halo */
+@keyframes routeDashFlow {
+  from {
+    stroke-dashoffset: 44;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animated-route-flow {
+  stroke-dasharray: 12, 10;
+  animation: routeDashFlow 1.2s linear infinite;
+}
+
+.blocked-route-line {
+  stroke-dasharray: 8, 8;
+}
+
+/* Route Origin & Destination Pulsing Radar Beacons */
+.custom-beacon-icon,
+.custom-waypoint-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.route-beacon-marker {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.route-beacon-marker .beacon-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: beaconWave 2s infinite ease-out;
+  pointer-events: none;
+}
+
+.route-beacon-marker.origin .beacon-pulse {
+  background: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 0 16px #10b981;
+}
+
+.route-beacon-marker.dest .beacon-pulse {
+  background: rgba(6, 182, 212, 0.45);
+  box-shadow: 0 0 16px #06b6d4;
+}
+
+.route-beacon-marker.blockage .beacon-pulse {
+  background: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 0 18px #ef4444;
+}
+
+@keyframes beaconWave {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.route-beacon-marker .beacon-core {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 2px solid #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+  transition: transform 0.2s ease;
+}
+
+.route-beacon-marker:hover .beacon-core {
+  transform: scale(1.15);
+}
+
+.route-beacon-marker.dest .beacon-core {
+  border-color: #06b6d4;
+}
+
+.route-beacon-marker.blockage .beacon-core {
+  border-color: #ef4444;
+  background: #450a0a;
+}
+
+/* Intermediate Route Waypoint Badges */
+.route-waypoint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  border-radius: 10px;
+  padding: 2px 7px;
+  font-size: 9px;
+  font-weight: 700;
+  color: #a7f3d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.route-waypoint-badge:hover {
+  transform: scale(1.08);
+  border-color: #10b981;
+}
+
 /* Mobile & Responsive Media Queries */
 @media (max-width: 868px) {
   .top-nav {
