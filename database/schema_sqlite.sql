@@ -1,13 +1,12 @@
 -- ============================================================================
--- NEURoute — Canonical PostgreSQL + PostGIS Database Schema
+-- NEURoute — SQLite Demo Mode Database Schema
 -- Problem Statement: SIH26002 — AI-Based Smart Logistics and Accessibility Intelligence Platform for NER
 -- Team: Nexara
--- Coordinate System: WGS84 (EPSG:4326)
+-- Coordinate System: WGS84 (EPSG:4326) via lat/lon columns and GeoJSON text fields
 -- Canonical Tables: 17
 -- ============================================================================
 
--- Enable PostGIS extension for native geospatial intelligence
-CREATE EXTENSION IF NOT EXISTS postgis;
+PRAGMA foreign_keys = ON;
 
 -- ----------------------------------------------------------------------------
 -- 1. ACCESS & GOVERNANCE LAYER
@@ -15,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 
 -- Table 1: roles
 CREATE TABLE IF NOT EXISTS roles (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(50) UNIQUE NOT NULL,
     description TEXT
 );
@@ -28,12 +27,12 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(100) NOT NULL,
     badge_number VARCHAR(50),
     phone_number VARCHAR(20),
-    role_id INT REFERENCES roles(id) ON DELETE RESTRICT,
+    role_id INTEGER REFERENCES roles(id) ON DELETE RESTRICT,
     role VARCHAR(50) NOT NULL DEFAULT 'GENERAL_VIEWER'
         CHECK (role IN ('ADMIN', 'LOGISTICS_OPERATOR', 'GOVERNMENT_AUTHORITY', 'EMERGENCY_RESPONSE', 'GENERAL_VIEWER', 'GIS_OFFICER', 'FIELD_OFFICER')),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------
@@ -42,14 +41,13 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Table 3: districts
 CREATE TABLE IF NOT EXISTS districts (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name VARCHAR(100) NOT NULL,
     state VARCHAR(50) NOT NULL,
     boundary_geojson TEXT,
-    boundary geometry(MultiPolygon, 4326),
     accessibility_score FLOAT NOT NULL DEFAULT 100.0
         CHECK (accessibility_score >= 0.0 AND accessibility_score <= 100.0),
-    score_updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    score_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 4: road_segments
@@ -57,9 +55,8 @@ CREATE TABLE IF NOT EXISTS road_segments (
     id VARCHAR(36) PRIMARY KEY,
     osm_id BIGINT,
     name VARCHAR(150) NOT NULL,
-    district_id INT NOT NULL REFERENCES districts(id) ON DELETE CASCADE,
+    district_id INTEGER NOT NULL REFERENCES districts(id) ON DELETE CASCADE,
     coordinates_geojson TEXT NOT NULL,
-    geometry geometry(LineString, 4326),
     length_km FLOAT NOT NULL DEFAULT 10.0
         CHECK (length_km >= 0.0),
     base_speed_kmh FLOAT NOT NULL DEFAULT 40.0
@@ -68,8 +65,8 @@ CREATE TABLE IF NOT EXISTS road_segments (
         CHECK (current_status IN ('OPEN', 'RISKY', 'BLOCKED', 'UNKNOWN')),
     current_risk_score FLOAT NOT NULL DEFAULT 0.0
         CHECK (current_risk_score >= 0.0 AND current_risk_score <= 1.0),
-    is_critical_lifeline BOOLEAN NOT NULL DEFAULT FALSE,
-    last_assessed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_critical_lifeline BOOLEAN NOT NULL DEFAULT 0,
+    last_assessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 16: logistics_hubs
@@ -78,17 +75,16 @@ CREATE TABLE IF NOT EXISTS logistics_hubs (
     name VARCHAR(150) NOT NULL,
     hub_type VARCHAR(50) NOT NULL
         CHECK (hub_type IN ('CENTRAL_DEPOT', 'DISTRIBUTION_CENTER', 'EMERGENCY_SUPPLY', 'TRANSPORT_HUB', 'RAILHEAD', 'FORWARD_BASE')),
-    district_id INT REFERENCES districts(id) ON DELETE SET NULL,
+    district_id INTEGER REFERENCES districts(id) ON DELETE SET NULL,
     latitude FLOAT NOT NULL
         CHECK (latitude >= -90.0 AND latitude <= 90.0),
     longitude FLOAT NOT NULL
         CHECK (longitude >= -180.0 AND longitude <= 180.0),
-    location geometry(Point, 4326),
     capacity_tons FLOAT NOT NULL DEFAULT 500.0
         CHECK (capacity_tons >= 0.0),
     contact_phone VARCHAR(20),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_active BOOLEAN NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------
@@ -109,12 +105,11 @@ CREATE TABLE IF NOT EXISTS field_reports (
         CHECK (latitude >= -90.0 AND latitude <= 90.0),
     longitude FLOAT NOT NULL
         CHECK (longitude >= -180.0 AND longitude <= 180.0),
-    location geometry(Point, 4326),
     photo_url TEXT,
     sync_status VARCHAR(20) NOT NULL DEFAULT 'SYNCED'
         CHECK (sync_status IN ('PENDING_SYNC', 'SYNCED', 'FAILED')),
-    client_reported_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    server_received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    client_reported_at TIMESTAMP NOT NULL,
+    server_received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 6: incidents
@@ -122,7 +117,7 @@ CREATE TABLE IF NOT EXISTS incidents (
     id VARCHAR(36) PRIMARY KEY,
     field_report_id VARCHAR(36) REFERENCES field_reports(id) ON DELETE SET NULL,
     road_segment_id VARCHAR(36) REFERENCES road_segments(id) ON DELETE SET NULL,
-    district_id INT REFERENCES districts(id) ON DELETE SET NULL,
+    district_id INTEGER REFERENCES districts(id) ON DELETE SET NULL,
     category VARCHAR(50) NOT NULL
         CHECK (category IN ('LANDSLIDE', 'FLOOD', 'ROAD_DAMAGE', 'BRIDGE_ISSUE', 'HEAVY_RAINFALL', 'TRAFFIC_CONGESTION', 'ROAD_BLOCKAGE', 'OTHER')),
     severity VARCHAR(20) NOT NULL
@@ -133,15 +128,14 @@ CREATE TABLE IF NOT EXISTS incidents (
         CHECK (latitude >= -90.0 AND latitude <= 90.0),
     longitude FLOAT NOT NULL
         CHECK (longitude >= -180.0 AND longitude <= 180.0),
-    location geometry(Point, 4326),
     description TEXT NOT NULL,
     photo_url TEXT,
     confidence FLOAT NOT NULL DEFAULT 1.0
         CHECK (confidence >= 0.0 AND confidence <= 1.0),
     verified_by VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
-    verified_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    resolved_at TIMESTAMP WITH TIME ZONE
+    verified_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------
@@ -164,9 +158,8 @@ CREATE TABLE IF NOT EXISTS vehicles (
         CHECK (current_latitude IS NULL OR (current_latitude >= -90.0 AND current_latitude <= 90.0)),
     current_longitude FLOAT
         CHECK (current_longitude IS NULL OR (current_longitude >= -180.0 AND current_longitude <= 180.0)),
-    last_known_location geometry(Point, 4326),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    last_telemetry_at TIMESTAMP WITH TIME ZONE
+    is_active BOOLEAN NOT NULL DEFAULT 1,
+    last_telemetry_at TIMESTAMP
 );
 
 -- Table 8: trips
@@ -180,26 +173,26 @@ CREATE TABLE IF NOT EXISTS trips (
         CHECK (origin_lat >= -90.0 AND origin_lat <= 90.0),
     origin_lon FLOAT NOT NULL
         CHECK (origin_lon >= -180.0 AND origin_lon <= 180.0),
-    origin_coords geometry(Point, 4326),
     dest_name VARCHAR(150) NOT NULL,
     dest_lat FLOAT NOT NULL
         CHECK (dest_lat >= -90.0 AND dest_lat <= 90.0),
     dest_lon FLOAT NOT NULL
         CHECK (dest_lon >= -180.0 AND dest_lon <= 180.0),
-    dest_coords geometry(Point, 4326),
     cargo_type VARCHAR(100) NOT NULL,
     cargo_priority VARCHAR(20) NOT NULL DEFAULT 'STANDARD'
         CHECK (cargo_priority IN ('STANDARD', 'HIGH', 'CRITICAL')),
     status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED'
         CHECK (status IN ('SCHEDULED', 'EN_ROUTE', 'IN_TRANSIT', 'DELAYED', 'REROUTED', 'COMPLETED', 'CANCELLED')),
     active_route_id VARCHAR(36),
-    baseline_eta TIMESTAMP WITH TIME ZONE,
-    current_eta TIMESTAMP WITH TIME ZONE,
+    baseline_eta TIMESTAMP,
+    current_eta TIMESTAMP,
     delay_minutes INT NOT NULL DEFAULT 0
         CHECK (delay_minutes >= 0),
-    started_at TIMESTAMP WITH TIME ZONE,
-    completed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE SET NULL,
+    FOREIGN KEY (active_route_id) REFERENCES routes(id) ON DELETE SET NULL
 );
 
 -- Table 9: shipments
@@ -223,21 +216,13 @@ CREATE TABLE IF NOT EXISTS shipments (
     trip_id VARCHAR(36) REFERENCES trips(id) ON DELETE SET NULL,
     status VARCHAR(30) NOT NULL DEFAULT 'CREATED'
         CHECK (status IN ('CREATED', 'ASSIGNED', 'IN_TRANSIT', 'DELAYED', 'REROUTED', 'DELIVERED', 'COMPLETED', 'CANCELLED')),
-    estimated_arrival TIMESTAMP WITH TIME ZONE,
+    estimated_arrival TIMESTAMP,
     delay_minutes INT NOT NULL DEFAULT 0
         CHECK (delay_minutes >= 0),
     risk_score FLOAT NOT NULL DEFAULT 0.0
         CHECK (risk_score >= 0.0 AND risk_score <= 1.0),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Connect circular foreign keys safely after table creation
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_trips_shipment') THEN
-        ALTER TABLE trips ADD CONSTRAINT fk_trips_shipment FOREIGN KEY (shipment_id) REFERENCES shipments(id) ON DELETE SET NULL;
-    END IF;
-END $$;
 
 -- Table 10: routes
 CREATE TABLE IF NOT EXISTS routes (
@@ -254,22 +239,13 @@ CREATE TABLE IF NOT EXISTS routes (
         CHECK (composite_risk_score >= 0.0 AND composite_risk_score <= 1.0),
     route_score FLOAT NOT NULL DEFAULT 0.0,
     coordinates_geojson TEXT NOT NULL,
-    path_geometry geometry(LineString, 4326),
     recommendation_reasons TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Connect active_route_id FK safely
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_trips_active_route') THEN
-        ALTER TABLE trips ADD CONSTRAINT fk_trips_active_route FOREIGN KEY (active_route_id) REFERENCES routes(id) ON DELETE SET NULL;
-    END IF;
-END $$;
 
 -- Table 11: route_segment_mappings
 CREATE TABLE IF NOT EXISTS route_segment_mappings (
-    id BIGSERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     route_id VARCHAR(36) NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
     road_segment_id VARCHAR(36) NOT NULL REFERENCES road_segments(id) ON DELETE CASCADE,
     sequence_order INT NOT NULL CHECK (sequence_order >= 0),
@@ -294,26 +270,26 @@ CREATE TABLE IF NOT EXISTS predictions (
     model_version VARCHAR(50) NOT NULL,
     input_features TEXT,
     method VARCHAR(100) DEFAULT 'RULE_HEURISTIC',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 13: weather_observations
 CREATE TABLE IF NOT EXISTS weather_observations (
-    id BIGSERIAL PRIMARY KEY,
-    district_id INT NOT NULL REFERENCES districts(id) ON DELETE CASCADE,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    district_id INTEGER NOT NULL REFERENCES districts(id) ON DELETE CASCADE,
     road_segment_id VARCHAR(36) REFERENCES road_segments(id) ON DELETE SET NULL,
     rainfall_mm FLOAT NOT NULL DEFAULT 0.0 CHECK (rainfall_mm >= 0.0),
     wind_speed_kmh FLOAT NOT NULL DEFAULT 0.0 CHECK (wind_speed_kmh >= 0.0),
     visibility_meters FLOAT NOT NULL DEFAULT 10000.0 CHECK (visibility_meters >= 0.0),
     temperature_c FLOAT NOT NULL DEFAULT 20.0,
     hazard_advisory VARCHAR(255),
-    recorded_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 14: hazards
 CREATE TABLE IF NOT EXISTS hazards (
     id VARCHAR(36) PRIMARY KEY,
-    district_id INT REFERENCES districts(id) ON DELETE SET NULL,
+    district_id INTEGER REFERENCES districts(id) ON DELETE SET NULL,
     road_segment_id VARCHAR(36) REFERENCES road_segments(id) ON DELETE SET NULL,
     hazard_type VARCHAR(50) NOT NULL
         CHECK (hazard_type IN ('LANDSLIDE_PRONE_ZONE', 'FLOOD_BASIN', 'EROSION', 'SEISMIC_FAULT', 'AVALANCHE_ZONE', 'MONSOON_VULNERABILITY')),
@@ -324,10 +300,9 @@ CREATE TABLE IF NOT EXISTS hazards (
     longitude FLOAT
         CHECK (longitude IS NULL OR (longitude >= -180.0 AND longitude <= 180.0)),
     boundary_geojson TEXT,
-    geometry geometry(Polygon, 4326),
-    active BOOLEAN NOT NULL DEFAULT TRUE,
+    active BOOLEAN NOT NULL DEFAULT 1,
     description TEXT,
-    reported_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    reported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 15: alerts
@@ -342,27 +317,26 @@ CREATE TABLE IF NOT EXISTS alerts (
     shipment_id VARCHAR(36) REFERENCES shipments(id) ON DELETE SET NULL,
     user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
     location_name VARCHAR(150),
-    is_read BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    is_read BOOLEAN NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table 17: audit_logs
 CREATE TABLE IF NOT EXISTS audit_logs (
-    id BIGSERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
     entity_type VARCHAR(50) NOT NULL,
     entity_id VARCHAR(100) NOT NULL,
     details TEXT,
     ip_address VARCHAR(45),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------
 -- 6. INDEXES FOR PERFORMANCE & RELATIONAL QUERY OPTIMIZATION
 -- ----------------------------------------------------------------------------
 
--- Relational & Filter B-Tree Indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_road_segments_status ON road_segments(current_status);
@@ -386,18 +360,3 @@ CREATE INDEX IF NOT EXISTS idx_alerts_is_read ON alerts(is_read);
 CREATE INDEX IF NOT EXISTS idx_alerts_severity ON alerts(severity);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-
--- ----------------------------------------------------------------------------
--- 7. POSTGIS GIST SPATIAL ACCELERATION INDEXES
--- ----------------------------------------------------------------------------
-
-CREATE INDEX IF NOT EXISTS idx_districts_boundary_gist ON districts USING GIST (boundary);
-CREATE INDEX IF NOT EXISTS idx_road_segments_geom_gist ON road_segments USING GIST (geometry);
-CREATE INDEX IF NOT EXISTS idx_logistics_hubs_loc_gist ON logistics_hubs USING GIST (location);
-CREATE INDEX IF NOT EXISTS idx_field_reports_loc_gist ON field_reports USING GIST (location);
-CREATE INDEX IF NOT EXISTS idx_incidents_loc_gist ON incidents USING GIST (location);
-CREATE INDEX IF NOT EXISTS idx_vehicles_loc_gist ON vehicles USING GIST (last_known_location);
-CREATE INDEX IF NOT EXISTS idx_trips_origin_gist ON trips USING GIST (origin_coords);
-CREATE INDEX IF NOT EXISTS idx_trips_dest_gist ON trips USING GIST (dest_coords);
-CREATE INDEX IF NOT EXISTS idx_routes_path_gist ON routes USING GIST (path_geometry);
-CREATE INDEX IF NOT EXISTS idx_hazards_geom_gist ON hazards USING GIST (geometry);
