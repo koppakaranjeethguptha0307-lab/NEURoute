@@ -24,6 +24,7 @@ from app.repositories import (
     AuditRepository,
     DistrictRepository,
     IncidentRepository,
+    PredictionRepository,
     RoadRepository,
     RouteRepository,
     ShipmentRepository,
@@ -33,6 +34,7 @@ from app.repositories import (
 from app.schemas.auth import UserContext
 from app.schemas.enums import UserRole
 from app.services import (
+    AIService,
     AlertService,
     AuditService,
     AuthService,
@@ -140,6 +142,10 @@ def get_district_repo(db: Session = Depends(get_db)) -> DistrictRepository:
     return DistrictRepository(db)
 
 
+def get_prediction_repo(db: Session = Depends(get_db)) -> PredictionRepository:
+    return PredictionRepository(db)
+
+
 # ==============================================================================
 # External Adapters Dependencies
 # ==============================================================================
@@ -163,6 +169,12 @@ def get_ai_adapter() -> AIIntegrationAdapter:
 # ==============================================================================
 # Business Services Dependencies
 # ==============================================================================
+
+def get_ai_service(
+    db: Session = Depends(get_db),
+    prediction_repo: PredictionRepository = Depends(get_prediction_repo),
+) -> AIService:
+    return AIService(db, prediction_repo)
 
 def get_auth_service(
     db: Session = Depends(get_db),

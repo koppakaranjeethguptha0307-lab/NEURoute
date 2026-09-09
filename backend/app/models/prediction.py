@@ -12,7 +12,15 @@ class Prediction(Base):
     __tablename__ = "predictions"
 
     id = Column(Integer, primary_key=True, index=True)
-    segment_id = Column(Integer, ForeignKey("road_segments.id"), nullable=False)
+    segment_id = Column(Integer, ForeignKey("road_segments.id"), nullable=True)
+    prediction_type = Column(String(50), nullable=True, default="RISK_SCORE")
+    target_entity_type = Column(String(50), nullable=True, default="ROAD_SEGMENT")
+    target_entity_id = Column(String(50), nullable=True)
+    predicted_value = Column(Text, nullable=True)
+    confidence = Column(Float, default=1.0, nullable=False)
+    model_version = Column(String(50), default="v1.0.0", nullable=False)
+    input_features = Column(Text, nullable=True)
+    method = Column(String(100), default="RULE_HEURISTIC", nullable=False)
     risk_score = Column(Float, default=0.0, nullable=False)
     risk_level = Column(String(20), default="LOW", nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
     rainfall_factor = Column(Float, default=0.0, nullable=False)
@@ -22,6 +30,7 @@ class Prediction(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     road_segment = relationship("RoadSegment", back_populates="predictions")
+
 
     @property
     def recommendations(self) -> List[str]:

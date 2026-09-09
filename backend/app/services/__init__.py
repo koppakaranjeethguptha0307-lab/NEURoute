@@ -9,6 +9,7 @@ from app.services.route_orchestrator import RouteOrchestrator
 from app.services.alert_service import AlertService
 from app.services.audit_service import AuditService
 from app.services.health_service import HealthService
+from app.services.ai_service import AIService
 
 __all__ = [
     "AuthService",
@@ -20,4 +21,5 @@ __all__ = [
     "AlertService",
     "AuditService",
     "HealthService",
+    "AIService",
 ]

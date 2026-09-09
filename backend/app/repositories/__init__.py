@@ -10,6 +10,7 @@ from app.repositories.route_repository import RouteRepository
 from app.repositories.alert_repository import AlertRepository
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.district_repository import DistrictRepository
+from app.repositories.prediction_repository import PredictionRepository
 
 __all__ = [
     "BaseRepository",
@@ -22,4 +23,6 @@ __all__ = [
     "AlertRepository",
     "AuditRepository",
     "DistrictRepository",
+    "PredictionRepository",
 ]
+

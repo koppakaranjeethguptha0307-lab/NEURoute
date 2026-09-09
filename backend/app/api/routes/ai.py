@@ -10,10 +10,12 @@ Exposes AI intelligence services via REST endpoints under /api/v1/ai/*:
 - POST /api/v1/ai/optimize-route
 """
 
-from fastapi import APIRouter, HTTPException, status
-from typing import Dict, Any
+from typing import Dict, Any, List
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from backend.app.schemas.ai import (
+from app.dependencies import get_ai_service
+from app.services.ai_service import AIService
+from app.schemas.ai import (
     IncidentClassificationInput,
     IncidentClassificationOutput,
     RiskPredictionInput,
@@ -24,11 +26,6 @@ from backend.app.schemas.ai import (
     RouteOptimizationOutput,
 )
 
-from ai.services.classifier import classify_incident
-from ai.services.risk_predictor import predict_road_risk
-from ai.services.delay_estimator import estimate_travel_delay
-from ai.services.route_optimizer import optimize_routes
-
 router = APIRouter(prefix="/api/v1/ai", tags=["AI Intelligence"])
 
 
@@ -37,12 +34,16 @@ router = APIRouter(prefix="/api/v1/ai", tags=["AI Intelligence"])
     response_model=IncidentClassificationOutput,
     summary="Classify incident description text"
 )
-def classify_incident_endpoint(payload: IncidentClassificationInput):
+def classify_incident_endpoint(
+    payload: IncidentClassificationInput,
+    ai_service: AIService = Depends(get_ai_service)
+):
     """
-    Classify incident text into category, severity, and confidence score.
+    Classify incident text into category, severity, and confidence score,
+    and persist prediction record in the database.
     """
     try:
-        res = classify_incident(payload.text)
+        res = ai_service.classify_incident_text(payload.text)
         return res
     except Exception as e:
         raise HTTPException(
@@ -56,12 +57,16 @@ def classify_incident_endpoint(payload: IncidentClassificationInput):
     response_model=RiskPredictionOutput,
     summary="Predict road segment risk score and disruption status"
 )
-def predict_risk_endpoint(payload: RiskPredictionInput):
+def predict_risk_endpoint(
+    payload: RiskPredictionInput,
+    ai_service: AIService = Depends(get_ai_service)
+):
     """
-    Calculate composite road segment risk score, risk level, explainable reasons, and disruption status.
+    Calculate composite road segment risk score, risk level, explainable reasons,
+    and disruption status, and persist prediction record in the database.
     """
     try:
-        res = predict_road_risk(
+        res = ai_service.predict_risk(
             segment_id=payload.segment_id,
             rainfall_mm=payload.rainfall_mm,
             visibility_meters=payload.visibility_meters,
@@ -86,12 +91,16 @@ def predict_risk_endpoint(payload: RiskPredictionInput):
     response_model=DelayPredictionOutput,
     summary="Estimate travel time and disruption delays"
 )
-def predict_delay_endpoint(payload: DelayPredictionInput):
+def predict_delay_endpoint(
+    payload: DelayPredictionInput,
+    ai_service: AIService = Depends(get_ai_service)
+):
     """
-    Calculate normal vs. impaired travel time, delay minutes, and percentage.
+    Calculate normal vs. impaired travel time, delay minutes, and percentage,
+    and persist prediction record in the database.
     """
     try:
-        res = estimate_travel_delay(
+        res = ai_service.estimate_delay(
             distance_km=payload.distance_km,
             base_speed_kmh=payload.base_speed_kmh,
             impaired_speed_kmh=payload.impaired_speed_kmh,
@@ -113,12 +122,16 @@ def predict_delay_endpoint(payload: DelayPredictionInput):
     response_model=RouteOptimizationOutput,
     summary="Optimize route candidate selection based on risk and priority"
 )
-def optimize_route_endpoint(payload: RouteOptimizationInput):
+def optimize_route_endpoint(
+    payload: RouteOptimizationInput,
+    ai_service: AIService = Depends(get_ai_service)
+):
     """
-    Compare candidate routes and recommend optimal route with explainable rationale.
+    Compare candidate routes and recommend optimal route with explainable rationale,
+    and persist prediction record in the database.
     """
     try:
-        res = optimize_routes(
+        res = ai_service.optimize_routes(
             candidate_routes=payload.candidate_routes,
             cargo_priority=payload.cargo_priority,
             preference=payload.preference
@@ -128,4 +141,38 @@ def optimize_route_endpoint(payload: RouteOptimizationInput):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Route optimization error: {str(e)}"
+        )
+
+
+@router.get(
+    "/predictions",
+    summary="Retrieve persisted AI predictions"
+)
+def get_predictions_endpoint(
+    limit: int = 50,
+    ai_service: AIService = Depends(get_ai_service)
+):
+    """
+    Retrieve stored predictions from the database.
+    """
+    try:
+        predictions = ai_service.get_predictions(limit=limit)
+        return [
+            {
+                "id": p.id,
+                "prediction_type": p.prediction_type,
+                "target_entity_type": p.target_entity_type,
+                "target_entity_id": p.target_entity_id,
+                "predicted_value": p.predicted_value,
+                "confidence": p.confidence,
+                "risk_score": p.risk_score,
+                "risk_level": p.risk_level,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in predictions
+        ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch predictions: {str(e)}"
         )

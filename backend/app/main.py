@@ -16,7 +16,7 @@ from app.dependencies import get_health_service
 from app.middleware.request_context import RequestContextMiddleware
 from app.schemas.health import HealthCheckResponse
 from app.services.health_service import HealthService
-from backend.app.api.routes import ai
+from app.api.routes import ai
 
 
 @asynccontextmanager
