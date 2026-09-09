@@ -172,9 +172,10 @@ def get_ai_adapter() -> AIIntegrationAdapter:
 
 def get_ai_service(
     db: Session = Depends(get_db),
+    ai_adapter: AIIntegrationAdapter = Depends(get_ai_adapter),
     prediction_repo: PredictionRepository = Depends(get_prediction_repo),
 ) -> AIService:
-    return AIService(db, prediction_repo)
+    return AIService(db, ai_adapter=ai_adapter, prediction_repo=prediction_repo)
 
 def get_auth_service(
     db: Session = Depends(get_db),

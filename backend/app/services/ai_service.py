@@ -1,5 +1,6 @@
 """
 AI Service governing business logic and database persistence for AI predictions.
+Routes calls via AIIntegrationAdapter to ensure modular adapter architecture.
 """
 
 import json
@@ -10,11 +11,6 @@ from app.adapters.ai.ai_adapter import AIIntegrationAdapter
 from app.core.logging import logger
 from app.models.prediction import Prediction
 from app.repositories.prediction_repository import PredictionRepository
-
-from ai.services.classifier import classify_incident
-from ai.services.risk_predictor import predict_road_risk
-from ai.services.delay_estimator import estimate_travel_delay
-from ai.services.route_optimizer import optimize_routes
 
 
 class AIService:
@@ -31,8 +27,8 @@ class AIService:
         self.prediction_repo = prediction_repo or PredictionRepository(db)
 
     def classify_incident_text(self, text: str) -> Dict[str, Any]:
-        """Classify incident text, persist prediction record to DB, and return result."""
-        result = classify_incident(text)
+        """Classify incident text via AIIntegrationAdapter, persist prediction record to DB, and return result."""
+        result = self.ai_adapter.classify_incident_dict(text)
         
         # Persist prediction to database
         try:
@@ -65,8 +61,8 @@ class AIService:
         historical_frequency: float = 0.10,
         trend: str = "STABLE",
     ) -> Dict[str, Any]:
-        """Calculate segment risk score, persist prediction record to DB, and return result."""
-        result = predict_road_risk(
+        """Calculate segment risk score via AIIntegrationAdapter, persist prediction record to DB, and return result."""
+        result = self.ai_adapter.predict_risk_dict(
             segment_id=segment_id,
             rainfall_mm=rainfall_mm,
             visibility_meters=visibility_meters,
@@ -118,8 +114,8 @@ class AIService:
         bottleneck_clearance_minutes: float = 0.0,
         risk_score: float = 0.0,
     ) -> Dict[str, Any]:
-        """Estimate travel delay, persist prediction record to DB, and return result."""
-        result = estimate_travel_delay(
+        """Estimate travel delay via AIIntegrationAdapter, persist prediction record to DB, and return result."""
+        result = self.ai_adapter.estimate_delay_dict(
             distance_km=distance_km,
             base_speed_kmh=base_speed_kmh,
             impaired_speed_kmh=impaired_speed_kmh,
@@ -157,8 +153,8 @@ class AIService:
         cargo_priority: str = "STANDARD",
         preference: str = "SAFEST",
     ) -> Dict[str, Any]:
-        """Optimize route selection, persist prediction record to DB, and return result."""
-        result = optimize_routes(
+        """Optimize route selection via AIIntegrationAdapter, persist prediction record to DB, and return result."""
+        result = self.ai_adapter.optimize_routes(
             candidate_routes=candidate_routes,
             cargo_priority=cargo_priority,
             preference=preference,
