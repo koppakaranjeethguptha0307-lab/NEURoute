@@ -144,10 +144,8 @@ export function initMockFixtures() {
   registerMockEndpoint('GET', '/analytics/trends', () => MOCK_MONTHLY_TRENDS);
 }
 
-// Auto-initialize mock registry in demo mode
-if (import.meta.env.VITE_DEMO_MODE === 'true') {
-  initMockFixtures();
-}
+// Auto-initialize mock registry for demo operation & 404 endpoint fallbacks
+initMockFixtures();
 
 export * from './shipments';
 export * from './vehicles';
