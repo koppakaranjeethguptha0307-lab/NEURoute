@@ -3,7 +3,7 @@ import { MOCK_SHIPMENTS } from './shipments';
 import { MOCK_VEHICLES } from './vehicles';
 import { MOCK_INCIDENTS } from './incidents';
 import { MOCK_ALERTS } from './alerts';
-import { MOCK_ROUTES } from './routes';
+import { MOCK_ROUTES, getCalculatedRoutes, RoutePlanParams } from './routes';
 import { MOCK_DASHBOARD_KPIS, MOCK_DISTRICT_ANALYTICS, MOCK_MONTHLY_TRENDS } from './analytics';
 import { Incident, OperationalAlert, Shipment } from '@/types';
 
@@ -130,12 +130,16 @@ export function initMockFixtures() {
   });
 
   // Route Intelligence endpoints
-  registerMockEndpoint('GET', '/routes', () => MOCK_ROUTES);
+  registerMockEndpoint('GET', '/routes', (context: MockRequestContext) => {
+    return getCalculatedRoutes(context.query as Partial<RoutePlanParams>);
+  });
 
   registerMockEndpoint('POST', '/routes/plan', (context: MockRequestContext) => {
+    const body = (context.body as Partial<RoutePlanParams>) || {};
+    const routes = getCalculatedRoutes(body);
     return {
-      query: context.body,
-      routes: MOCK_ROUTES,
+      query: body,
+      routes,
     };
   });
 

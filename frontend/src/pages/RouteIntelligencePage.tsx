@@ -47,50 +47,81 @@ export const RouteIntelligencePage: React.FC = () => {
   const [vehicleType, setVehicleType] = useState<string>('heavy_truck');
   const [avoidActiveHazards, setAvoidActiveHazards] = useState<boolean>(true);
 
-  const fetchRoutes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await apiClient.get<RouteOption[]>('/routes');
-      const list = Array.isArray(data) ? data : [];
-      setRoutes(list);
-      if (list.length > 0) {
-        // Default to recommended route
-        const recommended = list.find((r) => r.recommended) || list[0];
-        setSelectedRoute(recommended);
+  const fetchRoutesForParams = useCallback(
+    async (
+      targetOrigin?: string,
+      targetDest?: string,
+      targetCargo?: string,
+      targetVehicle?: string,
+      targetAvoid?: boolean,
+      showCalculatingSpinner = false
+    ) => {
+      const activeOrigin = targetOrigin ?? origin;
+      const activeDest = targetDest ?? destination;
+      const activeCargo = targetCargo ?? cargoType;
+      const activeVehicle = targetVehicle ?? vehicleType;
+      const activeAvoid = targetAvoid ?? avoidActiveHazards;
+
+      if (showCalculatingSpinner) setIsCalculating(true);
+      else setIsLoading(true);
+
+      try {
+        const result = await apiClient.post<{ routes: RouteOption[] }>('/routes/plan', {
+          origin: activeOrigin,
+          destination: activeDest,
+          cargoType: activeCargo,
+          vehicleType: activeVehicle,
+          avoidActiveHazards: activeAvoid,
+        });
+
+        const list = result?.routes || [];
+        setRoutes(list);
+        if (list.length > 0) {
+          const recommended = list.find((r) => r.recommended) || list[0];
+          setSelectedRoute(recommended);
+        }
+      } catch (err) {
+        console.error('Route calculation error:', err);
+      } finally {
+        setIsLoading(false);
+        setIsCalculating(false);
       }
-    } catch (err) {
-      console.error('Failed to load routes:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [origin, destination, cargoType, vehicleType, avoidActiveHazards]
+  );
 
   useEffect(() => {
-    fetchRoutes();
-  }, [fetchRoutes]);
+    fetchRoutesForParams();
+  }, [fetchRoutesForParams]);
 
   const handlePlanRoute = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsCalculating(true);
+    await fetchRoutesForParams(origin, destination, cargoType, vehicleType, avoidActiveHazards, true);
+  };
 
-    try {
-      const result = await apiClient.post<{ routes: RouteOption[] }>('/routes/plan', {
-        origin,
-        destination,
-        cargoType,
-        vehicleType,
-        avoidActiveHazards,
-      });
+  const handleOriginChange = (val: string) => {
+    setOrigin(val);
+    fetchRoutesForParams(val, destination, cargoType, vehicleType, avoidActiveHazards, false);
+  };
 
-      const list = result?.routes || routes;
-      setRoutes(list);
-      const recommended = list.find((r) => r.recommended) || list[0];
-      setSelectedRoute(recommended);
-    } catch (err) {
-      console.error('Route calculation error:', err);
-    } finally {
-      setIsCalculating(false);
-    }
+  const handleDestinationChange = (val: string) => {
+    setDestination(val);
+    fetchRoutesForParams(origin, val, cargoType, vehicleType, avoidActiveHazards, false);
+  };
+
+  const handleCargoChange = (val: string) => {
+    setCargoType(val);
+    fetchRoutesForParams(origin, destination, val, vehicleType, avoidActiveHazards, false);
+  };
+
+  const handleVehicleChange = (val: string) => {
+    setVehicleType(val);
+    fetchRoutesForParams(origin, destination, cargoType, val, avoidActiveHazards, false);
+  };
+
+  const handleAvoidChange = (val: boolean) => {
+    setAvoidActiveHazards(val);
+    fetchRoutesForParams(origin, destination, cargoType, vehicleType, val, false);
   };
 
   return (
@@ -126,7 +157,7 @@ export const RouteIntelligencePage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Origin Node</label>
                 <select
                   value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
+                  onChange={(e) => handleOriginChange(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   {NER_ORIGIN_HUBS.map((hub) => (
@@ -142,7 +173,7 @@ export const RouteIntelligencePage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Destination Target</label>
                 <select
                   value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
+                  onChange={(e) => handleDestinationChange(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   {NER_DESTINATIONS.map((dest) => (
@@ -158,7 +189,7 @@ export const RouteIntelligencePage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Cargo Priority & Type</label>
                 <select
                   value={cargoType}
-                  onChange={(e) => setCargoType(e.target.value)}
+                  onChange={(e) => handleCargoChange(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <option value="Emergency Pharmaceuticals">Emergency Pharmaceuticals & Medical Supplies</option>
@@ -173,7 +204,7 @@ export const RouteIntelligencePage: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1">Vehicle Classification</label>
                 <select
                   value={vehicleType}
-                  onChange={(e) => setVehicleType(e.target.value)}
+                  onChange={(e) => handleVehicleChange(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <option value="heavy_truck">Heavy Commercial Multi-Axle (12-Wheeler)</option>
@@ -193,7 +224,7 @@ export const RouteIntelligencePage: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={avoidActiveHazards}
-                    onChange={(e) => setAvoidActiveHazards(e.target.checked)}
+                    onChange={(e) => handleAvoidChange(e.target.checked)}
                     className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                   />
                 </label>
