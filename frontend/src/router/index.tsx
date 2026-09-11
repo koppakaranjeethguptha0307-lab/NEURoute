@@ -19,10 +19,15 @@ import { AccessRestrictedPage } from '@/pages/AccessRestrictedPage';
 
 export const router = createBrowserRouter(
   [
-    // Public Auth routes - redirect /login directly to dashboard for demo
+    // Public Auth routes
     {
-      path: '/login',
-      element: <Navigate to="/dashboard" replace />,
+      element: <AuthLayout />,
+      children: [
+        {
+          path: '/login',
+          element: <LoginPage />,
+        },
+      ],
     },
     // Protected main app routes
     {

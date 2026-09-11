@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(DEFAULT_ADMIN_USER);
   const [token, setToken] = useState<string | null>(DEFAULT_ADMIN_TOKEN);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Restore session from localStorage or sessionStorage on initial load, or default to ADMIN
   useEffect(() => {
@@ -51,8 +51,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Failed to restore auth session:', err);
       setToken(DEFAULT_ADMIN_TOKEN);
       setUser(DEFAULT_ADMIN_USER);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
