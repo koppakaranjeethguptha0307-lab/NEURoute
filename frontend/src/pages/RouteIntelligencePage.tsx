@@ -53,6 +53,9 @@ export const RouteIntelligencePage: React.FC = () => {
     paramsRef.current = { origin, destination, cargoType, vehicleType, avoidActiveHazards };
   }, [origin, destination, cargoType, vehicleType, avoidActiveHazards]);
 
+  const hasRoutesRef = useRef(routes.length > 0);
+  hasRoutesRef.current = routes.length > 0;
+
   const fetchRoutesForParams = useCallback(
     async (
       targetOrigin?: string,
@@ -70,7 +73,7 @@ export const RouteIntelligencePage: React.FC = () => {
 
       if (showCalculatingSpinner) {
         setIsCalculating(true);
-      } else if (routes.length === 0) {
+      } else if (!hasRoutesRef.current) {
         setIsLoading(true);
       }
 
@@ -96,7 +99,7 @@ export const RouteIntelligencePage: React.FC = () => {
         setIsCalculating(false);
       }
     },
-    [routes.length]
+    []
   );
 
   useEffect(() => {

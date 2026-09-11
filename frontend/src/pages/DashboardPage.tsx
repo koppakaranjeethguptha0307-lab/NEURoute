@@ -66,8 +66,11 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const kpisRef = React.useRef(kpis);
+  kpisRef.current = kpis;
+
   const fetchDashboardData = useCallback(async (showRefreshingSpinner = false) => {
-    if (showRefreshingSpinner || kpis !== null) {
+    if (showRefreshingSpinner || kpisRef.current !== null) {
       setIsRefreshing(true);
     } else {
       setIsLoading(true);
@@ -106,7 +109,7 @@ export const DashboardPage: React.FC = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [kpis]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();

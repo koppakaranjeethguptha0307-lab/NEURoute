@@ -84,8 +84,11 @@ export const IncidentsPage: React.FC = () => {
     description: '',
   });
 
+  const hasIncidentsRef = React.useRef(incidents.length > 0);
+  hasIncidentsRef.current = incidents.length > 0;
+
   const fetchIncidents = useCallback(async (isBackground = false) => {
-    if (!isBackground && incidents.length === 0) {
+    if (!isBackground && !hasIncidentsRef.current) {
       setIsLoading(true);
     }
     try {
@@ -100,7 +103,7 @@ export const IncidentsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [incidents.length]);
+  }, []);
 
   useEffect(() => {
     fetchIncidents();

@@ -44,8 +44,11 @@ export const AlertsPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
+  const hasAlertsRef = React.useRef(alerts.length > 0);
+  hasAlertsRef.current = alerts.length > 0;
+
   const fetchAlerts = useCallback(async (isBackground = false) => {
-    if (!isBackground && alerts.length === 0) {
+    if (!isBackground && !hasAlertsRef.current) {
       setIsLoading(true);
     }
     try {
@@ -67,7 +70,7 @@ export const AlertsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [alerts.length]);
+  }, []);
 
   useEffect(() => {
     fetchAlerts();

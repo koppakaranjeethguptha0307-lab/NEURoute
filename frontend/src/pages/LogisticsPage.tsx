@@ -91,8 +91,11 @@ export const LogisticsPage: React.FC = () => {
     priority: 'critical' as ShipmentPriority,
   });
 
+  const hasShipmentsRef = React.useRef(shipments.length > 0);
+  hasShipmentsRef.current = shipments.length > 0;
+
   const fetchData = useCallback(async (isBackground = false) => {
-    if (!isBackground && shipments.length === 0) {
+    if (!isBackground && !hasShipmentsRef.current) {
       setIsLoading(true);
     }
     try {
@@ -117,7 +120,7 @@ export const LogisticsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [shipments.length]);
+  }, []);
 
   useEffect(() => {
     fetchData();

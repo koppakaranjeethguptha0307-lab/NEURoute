@@ -28,29 +28,38 @@ const DEFAULT_ADMIN_TOKEN = 'auto_demo_admin_token_2026';
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(DEFAULT_ADMIN_USER);
-  const [token, setToken] = useState<string | null>(DEFAULT_ADMIN_TOKEN);
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      const storedToken = localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY);
+      if (storedToken) return storedToken;
+    } catch (err) {
+      console.error('Failed to restore auth token:', err);
+    }
+    return DEFAULT_ADMIN_TOKEN;
+  });
+
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const storedUser = localStorage.getItem(AUTH_USER_KEY) || sessionStorage.getItem(AUTH_USER_KEY);
+      if (storedUser) return JSON.parse(storedUser);
+    } catch (err) {
+      console.error('Failed to restore auth user:', err);
+    }
+    return DEFAULT_ADMIN_USER;
+  });
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Restore session from localStorage or sessionStorage on initial load, or default to ADMIN
+  // Synchronize default storage if unpopulated
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY);
-      const storedUser = localStorage.getItem(AUTH_USER_KEY) || sessionStorage.getItem(AUTH_USER_KEY);
-
-      if (storedToken && storedUser) {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } else {
-        setToken(DEFAULT_ADMIN_TOKEN);
-        setUser(DEFAULT_ADMIN_USER);
+      if (!storedToken) {
         localStorage.setItem(AUTH_TOKEN_KEY, DEFAULT_ADMIN_TOKEN);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(DEFAULT_ADMIN_USER));
       }
     } catch (err) {
-      console.error('Failed to restore auth session:', err);
-      setToken(DEFAULT_ADMIN_TOKEN);
-      setUser(DEFAULT_ADMIN_USER);
+      console.error('Failed to set default storage:', err);
     }
   }, []);
 
