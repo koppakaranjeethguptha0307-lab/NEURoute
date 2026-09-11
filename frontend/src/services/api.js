@@ -27,17 +27,21 @@ import {
   mockHubs,
   mockVehicles,
   mockRoutePlanResponse,
-} from './mockData';
+import { getApiBaseUrl } from '../utils/apiConfig';
 
-const BASE_URL = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL || '/api/v1';
 const IS_DEMO = import.meta.env?.VITE_DEMO_MODE === 'true';
+
+function getNormalizedBaseUrl() {
+  return getApiBaseUrl();
+}
 
 /**
  * Robust request executor with granular status mapping and layer-independent fallback
  */
 async function executeApiRequest(endpoint, options = {}, fallbackData = null, allowMockFallback = IS_DEMO) {
   const shouldFallback = allowMockFallback && IS_DEMO && fallbackData !== null;
-  const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const baseUrl = getNormalizedBaseUrl();
+  const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   try {
     const controller = new AbortController();

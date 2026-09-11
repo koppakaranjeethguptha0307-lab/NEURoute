@@ -3,6 +3,8 @@
  * Prevents browser console error flooding (ERR_CONNECTION_REFUSED) during backend offline/reconnection
  */
 
+import { getApiBaseUrl } from '@/utils/apiConfig';
+
 type EventCallback = (data: any) => void;
 
 class ResilientSSEClient {
@@ -14,9 +16,8 @@ class ResilientSSEClient {
   private url: string;
 
   constructor() {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api/v1';
-    const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    this.url = `${cleanBase}/events/stream`;
+    const baseUrl = getApiBaseUrl();
+    this.url = `${baseUrl}/events/stream`;
   }
 
   public subscribe(callback: EventCallback): () => void {

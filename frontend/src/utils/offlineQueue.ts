@@ -7,6 +7,8 @@
  * Automatically synchronizes with /api/v1/incidents/field-reports/sync upon reconnection.
  */
 
+import { getApiBaseUrl } from '@/utils/apiConfig';
+
 export interface OfflineFieldReport {
   client_report_uuid: string;
   title: string;
@@ -211,7 +213,7 @@ export async function synchronizePendingQueue(): Promise<{
       photos: r.photos || [],
     }));
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+    const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/incidents/field-reports/sync`, {
       method: 'POST',
       headers: {
@@ -293,7 +295,7 @@ export async function submitFieldReport(data: {
 
   // If online, attempt direct submission to /api/v1/incidents
   try {
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+    const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/incidents`, {
       method: 'POST',
       headers: {
