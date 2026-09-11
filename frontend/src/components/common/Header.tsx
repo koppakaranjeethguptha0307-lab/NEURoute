@@ -86,16 +86,60 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           <span>{isEmergencyMode ? 'EMERGENCY MODE' : 'Emergency Mode'}</span>
         </button>
 
-        {/* Demo Mode Badge */}
-        {isDemoMode && (
-          <div
-            role="status"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 border border-amber-200"
+        {/* Demo Mode Badge / Quick Page Switcher */}
+        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200 text-xs font-semibold">
+          <span className="text-[10px] uppercase font-bold text-slate-400 px-1.5 tracking-wider hidden lg:inline">
+            Demo Pages:
+          </span>
+          <Link
+            to="/dashboard"
+            className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+              location.pathname === '/dashboard'
+                ? 'bg-brand-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+            title="Admin Command Dashboard"
           >
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-            Demo Mode
-          </div>
-        )}
+            <span>🛡️</span>
+            <span className="hidden sm:inline">Admin</span>
+          </Link>
+          <Link
+            to="/field-dashboard"
+            className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+              location.pathname === '/field-dashboard'
+                ? 'bg-brand-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+            title="Field Officer Operations Console"
+          >
+            <span>👷</span>
+            <span className="hidden sm:inline">Field</span>
+          </Link>
+          <Link
+            to="/driver-dashboard"
+            className={`px-2.5 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+              location.pathname === '/driver-dashboard'
+                ? 'bg-brand-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+            title="Driver Transport Operator Console"
+          >
+            <span>🚛</span>
+            <span className="hidden sm:inline">Driver</span>
+          </Link>
+          <Link
+            to="/logistics"
+            className={`px-2 py-1 rounded text-xs transition-colors flex items-center gap-1 ${
+              location.pathname === '/logistics'
+                ? 'bg-brand-600 text-white shadow-sm font-bold'
+                : 'text-slate-600 hover:bg-slate-200'
+            }`}
+            title="Logistics & AI Route Intelligence"
+          >
+            <span>🗺️</span>
+            <span className="hidden sm:inline">Logistics</span>
+          </Link>
+        </div>
 
         {/* Global Search stub */}
         <div className="relative hidden xl:block">

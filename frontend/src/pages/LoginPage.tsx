@@ -118,7 +118,7 @@ const getRoleDestination = (role?: string) => {
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, directDemoLogin, isAuthenticated, user } = useAuth();
 
   // Mode: 'login' | 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -159,31 +159,22 @@ export const LoginPage: React.FC = () => {
     setPassword(demo.password);
   };
 
-  const handleDirectAdminLogin = async () => {
-    setAuthMode('login');
-    setSelectedRole('ADMIN');
-    const adminEmail = 'admin@neuroute.in';
-    const adminPass = 'password123';
-    setEmail(adminEmail);
-    setPassword(adminPass);
+  const handleSpeedDemoLogin = async (role: UserRole = 'ADMIN') => {
     setIsSubmitting(true);
     setErrors({});
-
     try {
-      const loggedUser = await login({
-        email: adminEmail,
-        password: adminPass,
-        role: 'ADMIN',
-        rememberMe: true,
-      });
+      const loggedUser = await directDemoLogin(role);
       const destination = fromLocation || getRoleDestination(loggedUser.role);
       navigate(destination, { replace: true });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Authentication failed.';
-      setErrors({ general: message });
+      setErrors({ general: 'Direct demo login failed.' });
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDirectAdminLogin = async () => {
+    await handleSpeedDemoLogin('ADMIN');
   };
 
   // Auto demo fill based on selected role when in login mode
@@ -550,7 +541,6 @@ export const LoginPage: React.FC = () => {
                   Secured
                 </span>
               </div>
-
               <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
                 <button
                   type="submit"
@@ -580,6 +570,46 @@ export const LoginPage: React.FC = () => {
                   <Sparkles className="h-4 w-4 text-amber-400" />
                   <span>Admin Direct Login</span>
                 </button>
+              </div>
+
+              {/* Instant 2-Min Speed Demo Direct Access */}
+              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                    ⚡ 2-Min Speed Demo (Direct 1-Click Access)
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSpeedDemoLogin('ADMIN')}
+                    className="flex items-center justify-center gap-1 rounded bg-brand-600/80 hover:bg-brand-500 px-2 py-2 text-xs font-bold text-white transition-colors"
+                  >
+                    🛡️ Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSpeedDemoLogin('FIELD_OFFICER')}
+                    className="flex items-center justify-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-2 py-2 text-xs font-bold text-white transition-colors"
+                  >
+                    👷 Field
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSpeedDemoLogin('DRIVER')}
+                    className="flex items-center justify-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-2 py-2 text-xs font-bold text-white transition-colors"
+                  >
+                    🚛 Driver
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSpeedDemoLogin('LOGISTICS_PLANNER')}
+                    className="flex items-center justify-center gap-1 rounded bg-slate-800 hover:bg-slate-700 px-2 py-2 text-xs font-bold text-white transition-colors"
+                  >
+                    🗺️ Logistics
+                  </button>
+                </div>
               </div>
             </form>
 
