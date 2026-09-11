@@ -159,6 +159,33 @@ export const LoginPage: React.FC = () => {
     setPassword(demo.password);
   };
 
+  const handleDirectAdminLogin = async () => {
+    setAuthMode('login');
+    setSelectedRole('ADMIN');
+    const adminEmail = 'admin@neuroute.in';
+    const adminPass = 'password123';
+    setEmail(adminEmail);
+    setPassword(adminPass);
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      const loggedUser = await login({
+        email: adminEmail,
+        password: adminPass,
+        role: 'ADMIN',
+        rememberMe: true,
+      });
+      const destination = fromLocation || getRoleDestination(loggedUser.role);
+      navigate(destination, { replace: true });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Authentication failed.';
+      setErrors({ general: message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Auto demo fill based on selected role when in login mode
   useEffect(() => {
     if (authMode === 'login' && !regSuccessMsg) {
@@ -524,23 +551,36 @@ export const LoginPage: React.FC = () => {
                 </span>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Authenticating...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Sign In as {ROLES.find((r) => r.id === selectedRole)?.title}</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2.5 mt-5">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3.5 text-xs font-bold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Authenticating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign In as {ROLES.find((r) => r.id === selectedRole)?.title}</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDirectAdminLogin}
+                  disabled={isSubmitting}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 hover:bg-amber-500/20 px-4 py-3.5 text-xs font-bold text-amber-300 transition-all active:scale-[0.98] disabled:opacity-50 shrink-0"
+                  title="Direct 1-Click Access to Admin Command Portal"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  <span>Admin Direct Login</span>
+                </button>
+              </div>
             </form>
 
             {/* Demo Credentials Section */}
