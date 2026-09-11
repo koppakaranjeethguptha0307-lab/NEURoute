@@ -10,12 +10,25 @@ import {
   ArrowRight,
   Activity,
   Navigation,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCircle,
+  Thermometer,
+  RotateCcw,
+  Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { useEmergencyMode } from '@/contexts/EmergencyContext';
 import { DashboardKPIs, OperationalAlert, Incident, Shipment } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
+import { DataSourceBadge } from '@/components/common/DataSourceBadge';
+import { SimulationControlCenter } from '@/components/simulation/SimulationControlCenter';
 import { Skeleton, DashboardCardSkeleton } from '@/components/common/LoadingSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
+import { MissionTimeline } from '@/components/simulation/MissionTimeline';
+import { AiDecisionPanel } from '@/components/common/AiDecisionPanel';
+
 
 export const DashboardPage: React.FC = () => {
   const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
@@ -25,6 +38,32 @@ export const DashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string>(new Date().toLocaleTimeString());
+
+  const [isDemoRunning, setIsDemoRunning] = useState<boolean>(false);
+  const [isDemoCompleted, setIsDemoCompleted] = useState<boolean>(false);
+
+  const handleRunFullDemo = async () => {
+    setIsDemoRunning(true);
+    try {
+      await apiClient.post('/simulation/demo-scenario');
+      await fetchDashboardData(true);
+      setIsDemoCompleted(true);
+    } catch (err) {
+      console.error('Demo execution error:', err);
+    } finally {
+      setIsDemoRunning(false);
+    }
+  };
+
+  const handleResetDemo = async () => {
+    try {
+      await apiClient.post('/simulation/reset');
+      await fetchDashboardData(true);
+      setIsDemoCompleted(false);
+    } catch (err) {
+      console.error('Reset error:', err);
+    }
+  };
 
   const fetchDashboardData = useCallback(async (showRefreshingSpinner = false) => {
     if (showRefreshingSpinner) setIsRefreshing(true);
@@ -41,7 +80,21 @@ export const DashboardPage: React.FC = () => {
       setKpis(kpiRes);
       setAlerts(Array.isArray(alertsRes) ? alertsRes.slice(0, 4) : []);
       setIncidents(Array.isArray(incidentsRes) ? incidentsRes : []);
-      setShipments(Array.isArray(shipmentsRes) ? shipmentsRes.slice(0, 5) : []);
+      const rawShipments = Array.isArray(shipmentsRes) ? shipmentsRes.slice(0, 5) : [];
+      const normalizedShipments = rawShipments.map((s: any) => ({
+        ...s,
+        id: String(s.id),
+        trackingNumber: s.trackingNumber || s.tracking_number || `SHP-${s.id}`,
+        cargoType: s.cargoType || s.cargo_type || s.title || 'General Cargo',
+        origin: s.origin || s.origin_address || 'Guwahati Hub',
+        destination: s.destination || s.destination_address || 'Silchar Forward Depot',
+        carrier: s.carrier || 'NEURoute Regional Fleet',
+        currentLocationName: s.currentLocationName || s.origin_address || 'En-Route Lifeline',
+        status: s.status || 'in_transit',
+        priority: s.priority || s.cargo_priority?.toLowerCase() || 'standard',
+        riskScore: s.riskScore ?? s.risk_score ?? 15,
+      }));
+      setShipments(normalizedShipments);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
@@ -53,10 +106,35 @@ export const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+    const unsubscribe = import('@/utils/sseClient').then(({ sseClient }) => {
+      return sseClient.subscribe((evt) => {
+        if (
+          evt &&
+          (evt.event === 'ROAD_STATUS_UPDATED' ||
+            evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
+            evt.event === 'WEATHER_UPDATED' ||
+            evt.event === 'SIMULATION_RESET' ||
+            evt.event === 'DEMO_SCENARIO_COMPLETED' ||
+            evt.event === 'COLD_CHAIN_ALERT' ||
+            evt.event === 'EMERGENCY_MODE_TOGGLED')
+        ) {
+          fetchDashboardData(true);
+        }
+      });
+    });
+
+    const interval = setInterval(() => fetchDashboardData(true), 12000);
+    return () => {
+      unsubscribe.then((unsub) => unsub && unsub());
+      clearInterval(interval);
+    };
   }, [fetchDashboardData]);
 
-  // Strategic NER Corridors summary calculation
-  const corridors = [
+  const { isEmergencyMode, safeCorridors, toggleEmergencyMode } = useEmergencyMode();
+
+  // Strategic NER Corridors baseline
+  const defaultCorridors = [
     {
       name: 'NH-29 Corridor',
       route: 'Dimapur → Kohima → Imphal',
@@ -87,6 +165,52 @@ export const DashboardPage: React.FC = () => {
     },
   ];
 
+  // Dynamic Corridor calculation based on Emergency Mode
+  const activeCorridors = React.useMemo(() => {
+    if (!isEmergencyMode) return defaultCorridors;
+    return [
+      {
+        name: 'Umrangso Relief Lifeline Bypass (SH-19)',
+        route: 'Guwahati → Umrangso → Silchar (Barak Valley)',
+        status: 'clear',
+        reason: 'PRIORITY EMERGENCY CORRIDOR: Operational for medical & relief convoys',
+        risk: 18,
+        isEmergencyLifeline: true,
+      },
+      {
+        name: 'NH-06 Sonapur Tunnel Corridor',
+        route: 'Guwahati → Shillong → Sonapur → Silchar',
+        status: 'disrupted',
+        reason: 'CHOKEPOINT BLOCKED: Closed for heavy vehicles. All convoys rerouted via Umrangso.',
+        risk: 92,
+        isEmergencyLifeline: false,
+      },
+      ...defaultCorridors.filter((c) => !c.name.includes('NH-27 / NH-6')),
+    ];
+  }, [isEmergencyMode]);
+
+  // Actual filtering of shipments in Emergency Mode
+  const prioritizedShipments = React.useMemo(() => {
+    if (!isEmergencyMode) return shipments;
+    return [...shipments].sort((a, b) => {
+      const isCriticalA =
+        a.cargoType?.toLowerCase().includes('medicine') ||
+        a.cargoType?.toLowerCase().includes('insulin') ||
+        a.cargoType?.toLowerCase().includes('vaccine') ||
+        a.priority === 'critical'
+          ? 1
+          : 0;
+      const isCriticalB =
+        b.cargoType?.toLowerCase().includes('medicine') ||
+        b.cargoType?.toLowerCase().includes('insulin') ||
+        b.cargoType?.toLowerCase().includes('vaccine') ||
+        b.priority === 'critical'
+          ? 1
+          : 0;
+      return isCriticalB - isCriticalA;
+    });
+  }, [shipments, isEmergencyMode]);
+
   return (
     <div className="space-y-6">
       {/* Operations Banner */}
@@ -105,23 +229,117 @@ export const DashboardPage: React.FC = () => {
             <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-2xl">
               Live monitoring across Assam, Meghalaya, Arunachal Pradesh, Manipur, Mizoram, Nagaland, Tripura, and Sikkim.
             </p>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <DataSourceBadge source="SIMULATED" label="GPS Telemetry" />
+              <DataSourceBadge source="LIVE_API" label="Weather Feed" />
+              <DataSourceBadge source="SIMULATED_TELEMETRY" label="Cold-Chain" />
+              <DataSourceBadge source="NOT_CONFIGURED" label="Govt Integrations" />
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-lg bg-slate-800/80 px-3 py-1.5 text-xs text-slate-300 border border-slate-700">
-              Telemetry synced: <strong className="text-white font-mono">{lastUpdated}</strong>
-            </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Primary RUN FULL SIH DEMO Button */}
+            <button
+              onClick={handleRunFullDemo}
+              disabled={isDemoRunning}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-brand-500/25 hover:from-brand-500 hover:to-purple-500 active:scale-95 transition-all disabled:opacity-75"
+            >
+              {isDemoRunning ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  <span>RUNNING DEMO SCENARIO...</span>
+                </>
+              ) : isDemoCompleted ? (
+                <>
+                  <Sparkles className="h-4 w-4 text-emerald-300" />
+                  <span>✓ DEMO COMPLETED — RUN AGAIN</span>
+                </>
+              ) : (
+                <>
+                  <Activity className="h-4 w-4 text-emerald-300 animate-pulse" />
+                  <span>RUN FULL SIH DEMO</span>
+                </>
+              )}
+            </button>
+
+            {/* RESET DEMO Button */}
+            <button
+              onClick={handleResetDemo}
+              disabled={isDemoRunning}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
+              <span>Reset Demo</span>
+            </button>
+
             <button
               onClick={() => fetchDashboardData(true)}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md hover:bg-brand-500 active:scale-95 transition-all disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/80 px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Refresh Hub</span>
+              <span>Sync</span>
             </button>
           </div>
         </div>
       </div>
+
+      {/* Emergency Mode Mission Control Banner */}
+      {isEmergencyMode && (
+        <div className="rounded-2xl border border-rose-600/40 bg-gradient-to-r from-rose-950 via-rose-900 to-slate-900 p-5 text-white shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-600 text-white shadow-lg shadow-rose-600/50 animate-pulse">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="rounded-md bg-rose-500/30 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-rose-200 border border-rose-400/40">
+                    Emergency Logistics Mode Active
+                  </span>
+                  <span className="text-xs text-rose-300 font-medium hidden sm:inline">
+                    Disaster Relief & Critical Medical Supply Protocol
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-white mt-1">
+                  Active Chokepoint: NH-06 Sonapur Tunnel Blocked | Umrangso Lifeline Engaged
+                </h3>
+                <p className="text-xs text-slate-300 mt-0.5 max-w-3xl">
+                  Priority routing activated for <strong className="text-rose-200 font-semibold">insulin, vaccines, pediatric medicine & emergency rations</strong>.
+                  Heavy vehicle traffic is rerouted away from the blocked Sonapur landslide corridor into the accessible Umrangso Valley bypass.
+                </p>
+                <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-rose-200">
+                  <span className="inline-flex items-center gap-1.5">
+                    <ShieldCheck className="h-4 w-4 text-emerald-400" />
+                    Safe Corridors: <strong>Umrangso Relief Lifeline (Risk 18%), NH-15 North Bank</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    Affected Districts: <strong>Cachar, East Jaintia Hills, Kamrup Metro</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
+              <Link
+                to="/routes?cargo=CRITICAL&preference=SAFEST"
+                className="inline-flex items-center gap-2 rounded-xl bg-rose-600 hover:bg-rose-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-rose-600/30 transition-all active:scale-95"
+              >
+                <span>Calculate Emergency Route</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <button
+                onClick={toggleEmergencyMode}
+                className="rounded-xl border border-rose-500/40 bg-rose-950/60 hover:bg-rose-900 px-3.5 py-2.5 text-xs font-semibold text-rose-200 transition-colors"
+              >
+                Exit Emergency Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI Cards Grid */}
       {isLoading ? (
@@ -216,8 +434,55 @@ export const DashboardPage: React.FC = () => {
             </div>
             <p className="mt-1 text-xs text-slate-500">Dynamic AI risk composite</p>
           </div>
+
+          {/* KPI 5: Cold-Chain Integrity */}
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:shadow-md col-span-1 sm:col-span-2 lg:col-span-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 border border-cyan-100">
+                  <Thermometer className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      Cold-Chain Integrity Monitoring
+                    </span>
+                    <DataSourceBadge source="SIMULATED_TELEMETRY" />
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                    Critical Consignments (Insulin / Vaccine Cold-Chain Threshold: 2.0°C – 8.0°C)
+                  </h4>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block uppercase font-semibold">Active Consignment Temp</span>
+                  <strong className="text-xl font-bold font-mono text-emerald-600">4.8°C</strong>
+                </div>
+                <div className="h-8 w-px bg-slate-200 hidden sm:block"></div>
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Thermal Window Optimal
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
+
+
+      {/* SIH Mission Timeline & Explainable AI Decision Panel Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="lg:col-span-6">
+          <MissionTimeline />
+        </div>
+        <div className="lg:col-span-6">
+          <AiDecisionPanel />
+        </div>
+      </div>
 
       {/* Main Content Grid: Corridors & Priority Alerts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -245,7 +510,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-3">
-              {corridors.map((c, idx) => (
+              {activeCorridors.map((c, idx) => (
                 <div
                   key={idx}
                   className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 transition-all hover:bg-slate-50 hover:border-slate-300"
@@ -409,16 +674,36 @@ export const DashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {shipments.map((shp) => (
-                  <tr key={shp.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono font-bold text-slate-900">{shp.trackingNumber}</span>
-                      <p className="text-[11px] text-slate-500 truncate max-w-xs">{shp.cargoType}</p>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <p className="font-medium text-slate-800 truncate max-w-xs">{shp.origin}</p>
-                      <p className="text-[11px] text-slate-500 truncate max-w-xs">→ {shp.destination}</p>
-                    </td>
+                {prioritizedShipments.map((shp) => {
+                  const isMedicalCargo =
+                    shp.cargoType?.toLowerCase().includes('medicine') ||
+                    shp.cargoType?.toLowerCase().includes('insulin') ||
+                    shp.cargoType?.toLowerCase().includes('vaccine');
+
+                  return (
+                    <tr
+                      key={shp.id}
+                      className={`transition-colors ${
+                        isEmergencyMode && isMedicalCargo
+                          ? 'bg-rose-50/70 hover:bg-rose-50 border-l-4 border-l-rose-600'
+                          : 'hover:bg-slate-50/60'
+                      }`}
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-slate-900">{shp.trackingNumber}</span>
+                          {isEmergencyMode && isMedicalCargo && (
+                            <span className="rounded bg-rose-600 text-white font-extrabold text-[9px] px-1.5 py-0.5 uppercase tracking-wide animate-pulse">
+                              PRIORITY MEDICAL
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate max-w-xs">{shp.cargoType}</p>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <p className="font-medium text-slate-800 truncate max-w-xs">{shp.origin}</p>
+                        <p className="text-[11px] text-slate-500 truncate max-w-xs">→ {shp.destination}</p>
+                      </td>
                     <td className="py-3.5 px-4">
                       <span className="inline-flex items-center gap-1 text-slate-700">
                         <MapPin className="h-3.5 w-3.5 text-slate-400" />
@@ -441,15 +726,20 @@ export const DashboardPage: React.FC = () => {
                         {shp.riskScore}%
                       </span>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Floating Simulation Control Center */}
+      <SimulationControlCenter onSimulationTriggered={fetchDashboardData} />
     </div>
   );
 };
+
 
 export default DashboardPage;

@@ -15,6 +15,12 @@ import { Incident, IncidentSeverity, IncidentType, IncidentStatus } from '@/type
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Skeleton } from '@/components/common/LoadingSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
+import {
+  submitFieldReport,
+  synchronizePendingQueue,
+  subscribeSyncStats,
+  SyncStats,
+} from '@/utils/offlineQueue';
 
 const NER_STATES = [
   'All States',
@@ -53,6 +59,17 @@ export const IncidentsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // Offline Queue State
+  const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
+  const [isSyncingManual, setIsSyncingManual] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsub = subscribeSyncStats((stats) => {
+      setSyncStats(stats);
+    });
+    return unsub;
+  }, []);
+
   // New Incident Form Data
   const [newIncident, setNewIncident] = useState({
     title: '',
@@ -84,22 +101,46 @@ export const IncidentsPage: React.FC = () => {
 
   useEffect(() => {
     fetchIncidents();
+    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
+      return sseClient.subscribe((evt) => {
+        if (
+          evt &&
+          (evt.event === 'SIMULATION_RESET' ||
+            evt.event === 'ROAD_STATUS_UPDATED' ||
+            evt.event === 'FIELD_REPORT_SYNCED' ||
+            evt.event === 'DEMO_SCENARIO_COMPLETED')
+        ) {
+          fetchIncidents();
+        }
+      });
+    });
+    return () => {
+      unsubPromise.then((unsub) => unsub && unsub());
+    };
   }, [fetchIncidents]);
 
   // Filter logic
   const filteredIncidents = incidents.filter((item) => {
+    const title = item.title || '';
+    const highway = item.highway || (item as any).highway_number || 'NH-06';
+    const locationName = item.locationName || (item as any).location_name || item.title || 'Corridor Sector';
+    const description = item.description || '';
+    const state = item.state || 'Assam';
+    const type = (item.type || (item as any).category || '').toLowerCase();
+    const severity = (item.severity || '').toLowerCase();
+
     const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.highway.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.locationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      highway.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      locationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesState =
-      selectedState === 'All States' || item.state.toLowerCase() === selectedState.toLowerCase();
+      selectedState === 'All States' || state.toLowerCase() === selectedState.toLowerCase();
 
-    const matchesType = selectedType === 'all' || item.type === selectedType;
+    const matchesType = selectedType === 'all' || type === selectedType.toLowerCase();
 
-    const matchesSeverity = selectedSeverity === 'all' || item.severity === selectedSeverity;
+    const matchesSeverity = selectedSeverity === 'all' || severity === selectedSeverity.toLowerCase();
 
     return matchesSearch && matchesState && matchesType && matchesSeverity;
   });
@@ -123,10 +164,18 @@ export const IncidentsPage: React.FC = () => {
     setFormErrors({});
 
     try {
-      const created = await apiClient.post<Incident>('/incidents', newIncident);
-      setIncidents((prev) => [created, ...prev]);
-      setSelectedIncident(created);
+      await submitFieldReport({
+        title: newIncident.title,
+        category: (newIncident.type === 'landslide' ? 'LANDSLIDE' : newIncident.type === 'flood' ? 'FLOOD' : 'ROAD_DAMAGE'),
+        severity: (newIncident.severity?.toUpperCase() || 'MEDIUM') as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL',
+        description: `${newIncident.highway} - ${newIncident.locationName}: ${newIncident.description}`,
+        latitude: newIncident.lat,
+        longitude: newIncident.lng,
+      });
+
       setIsModalOpen(false);
+      await fetchIncidents();
+
       // Reset form
       setNewIncident({
         title: '',
@@ -147,11 +196,21 @@ export const IncidentsPage: React.FC = () => {
   };
 
   // Lifecycle status update
-  const handleUpdateStatus = (status: IncidentStatus) => {
+  const handleUpdateStatus = async (targetStatus: 'ACTIVE' | 'INVESTIGATING' | 'RESOLVED') => {
     if (!selectedIncident) return;
-    const updated = { ...selectedIncident, status };
-    setSelectedIncident(updated);
-    setIncidents((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+    const updatedLocally = { ...selectedIncident, status: targetStatus as any };
+
+    // Optimistic UI update
+    setSelectedIncident(updatedLocally);
+    setIncidents((prev) => prev.map((i) => (i.id === updatedLocally.id ? updatedLocally : i)));
+
+    try {
+      await apiClient.patch(`/incidents/${selectedIncident.id}/status`, { status: targetStatus });
+      await fetchIncidents();
+    } catch (err) {
+      console.error('Failed to update incident status on server:', err);
+      fetchIncidents();
+    }
   };
 
   return (
@@ -171,14 +230,68 @@ export const IncidentsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-rose-600/20 hover:bg-rose-500 active:scale-95 transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Report New Hazard</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => {
+              const nextState = !(syncStats && !syncStats.isOnline);
+              import('@/utils/offlineQueue').then((m) => m.setSimulatedOffline(nextState));
+            }}
+            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-xs font-semibold border transition-all ${syncStats && !syncStats.isOnline
+                ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-sm'
+                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+              }`}
+            title="Simulate network loss to test offline report buffering and batch synchronization"
+          >
+            <span className={`h-2 w-2 rounded-full ${syncStats && !syncStats.isOnline ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></span>
+            <span>{syncStats && !syncStats.isOnline ? 'Simulated Offline (Click to Restore)' : 'Network: Online (Click to Go Offline)'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-rose-600/20 hover:bg-rose-500 active:scale-95 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Report New Hazard</span>
+          </button>
+        </div>
       </div>
+
+      {/* Offline Queue Sync Bar */}
+      {syncStats && (syncStats.pendingCount > 0 || !syncStats.isOnline) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50/90 p-4 shadow-sm text-amber-900">
+          <div className="flex items-center gap-3">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+            </span>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-2">
+                OFFLINE FIELD REPORT BUFFER ACTIVE
+                <span className="text-[10px] bg-amber-200/80 px-2 py-0.5 rounded font-mono font-bold">
+                  {syncStats.isOnline ? 'NETWORK RESTORED' : 'NO CELL COVERAGE (SONAPUR GORGE)'}
+                </span>
+              </p>
+              <p className="text-xs text-amber-700">
+                {syncStats.pendingCount} reports queued locally on this terminal. {syncStats.isOnline ? 'Network restored. Ready for idempotent sync.' : 'Reports saved locally in offline queue.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={async () => {
+              setIsSyncingManual(true);
+              await synchronizePendingQueue();
+              await fetchIncidents();
+              setIsSyncingManual(false);
+            }}
+            disabled={isSyncingManual || !syncStats.isOnline}
+            className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-amber-500 active:scale-95 transition-all disabled:opacity-50"
+          >
+            {isSyncingManual ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            <span>{syncStats.isOnline ? 'Sync All Reports to Central DB' : 'Offline — Buffered Locally'}</span>
+          </button>
+        </div>
+      )}
+
 
       {/* Filter Toolbar */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -270,11 +383,10 @@ export const IncidentsPage: React.FC = () => {
                 <div
                   key={incident.id}
                   onClick={() => setSelectedIncident(incident)}
-                  className={`cursor-pointer rounded-2xl border p-5 transition-all ${
-                    isSelected
+                  className={`cursor-pointer rounded-2xl border p-5 transition-all ${isSelected
                       ? 'border-brand-500 bg-white shadow-md ring-2 ring-brand-500/10'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -340,22 +452,34 @@ export const IncidentsPage: React.FC = () => {
               {/* Status Update Lifecycle */}
               <div>
                 <span className="text-xs font-semibold text-slate-700 block mb-2">
-                  Operational Hazard Status
+                  Operational Hazard Lifecycle Status
                 </span>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['active', 'clearing', 'resolved'] as IncidentStatus[]).map((st) => (
-                    <button
-                      key={st}
-                      onClick={() => handleUpdateStatus(st)}
-                      className={`rounded-lg py-2 px-1 text-xs font-semibold capitalize border transition-all ${
-                        selectedIncident.status === st
-                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
+                  {[
+                    { label: 'Active Hazard', value: 'ACTIVE' as const },
+                    { label: 'Investigating', value: 'INVESTIGATING' as const },
+                    { label: 'Resolved', value: 'RESOLVED' as const },
+                  ].map((btn) => {
+                    const normCurrent = (selectedIncident.status || '').toUpperCase();
+                    const isSelected =
+                      (btn.value === 'ACTIVE' && (normCurrent === 'ACTIVE' || normCurrent === 'REPORTED' || normCurrent === 'CONFIRMED')) ||
+                      (btn.value === 'INVESTIGATING' && (normCurrent === 'INVESTIGATING' || normCurrent === 'CLEARING')) ||
+                      (btn.value === 'RESOLVED' && normCurrent === 'RESOLVED');
+
+                    return (
+                      <button
+                        key={btn.value}
+                        onClick={() => handleUpdateStatus(btn.value)}
+                        className={`rounded-lg py-2 px-1 text-[11px] font-semibold transition-all border ${
+                          isSelected
+                            ? 'bg-slate-900 text-white border-slate-900 shadow-sm ring-1 ring-slate-900'
+                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }`}
+                      >
+                        {btn.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

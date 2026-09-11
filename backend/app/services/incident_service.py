@@ -4,8 +4,9 @@ Handles incident lifecycle transitions, road segment binding, operational impact
 and downstream alert event triggers.
 """
 
+import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Union
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import (
@@ -34,10 +35,10 @@ class IncidentService:
 
     VALID_TRANSITIONS = {
         IncidentStatus.REPORTED: {IncidentStatus.INVESTIGATING, IncidentStatus.CONFIRMED, IncidentStatus.ACTIVE, IncidentStatus.RESOLVED},
-        IncidentStatus.INVESTIGATING: {IncidentStatus.CONFIRMED, IncidentStatus.ACTIVE, IncidentStatus.RESOLVED},
-        IncidentStatus.CONFIRMED: {IncidentStatus.ACTIVE, IncidentStatus.RESOLVED},
-        IncidentStatus.ACTIVE: {IncidentStatus.RESOLVED},
-        IncidentStatus.RESOLVED: {IncidentStatus.ACTIVE, IncidentStatus.INVESTIGATING},  # Re-opening allowed
+        IncidentStatus.INVESTIGATING: {IncidentStatus.CONFIRMED, IncidentStatus.ACTIVE, IncidentStatus.RESOLVED, IncidentStatus.REPORTED},
+        IncidentStatus.CONFIRMED: {IncidentStatus.ACTIVE, IncidentStatus.INVESTIGATING, IncidentStatus.RESOLVED},
+        IncidentStatus.ACTIVE: {IncidentStatus.INVESTIGATING, IncidentStatus.RESOLVED, IncidentStatus.CONFIRMED},
+        IncidentStatus.RESOLVED: {IncidentStatus.ACTIVE, IncidentStatus.INVESTIGATING, IncidentStatus.REPORTED},
     }
 
     def __init__(
@@ -52,7 +53,7 @@ class IncidentService:
         self.road_repo = road_repo or RoadRepository(db)
         self.alert_service = alert_service or AlertService(db)
 
-    def get_incident(self, incident_id: int) -> Incident:
+    def get_incident(self, incident_id: Union[str, int]) -> Incident:
         """Fetch incident by primary key or raise ResourceNotFoundError."""
         incident = self.incident_repo.get_by_id(incident_id)
         if not incident:
@@ -88,6 +89,7 @@ class IncidentService:
             road_segment = self._find_nearest_road_segment(data.latitude, data.longitude)
 
         incident = Incident(
+            id=f"inc-ner-{uuid.uuid4().hex[:8]}",
             title=data.title,
             category=data.category.value,
             severity=data.severity.value,
@@ -121,13 +123,16 @@ class IncidentService:
         )
         return incident
 
-    def transition_status(self, incident_id: int, transition: IncidentStatusTransition) -> Incident:
+    def transition_status(self, incident_id: Union[str, int], transition: IncidentStatusTransition) -> Incident:
         """
         Execute incident status transition and update road operational status.
         """
         incident = self.get_incident(incident_id)
         current_status = IncidentStatus(incident.status)
         target_status = transition.status
+
+        if target_status == current_status:
+            return incident
 
         allowed_targets = self.VALID_TRANSITIONS.get(current_status, set())
         if target_status not in allowed_targets:
@@ -165,7 +170,8 @@ class IncidentService:
 
     def _update_road_segment_status(self, road_segment: RoadSegment) -> None:
         """Calculate and apply road segment status based on active incidents."""
-        active_incidents = self.incident_repo.get_by_road_segment(road_segment.id, active_only=True)
+        raw_incidents = self.incident_repo.get_by_road_segment(road_segment.id, active_only=True)
+        active_incidents = [inc for inc in (raw_incidents or []) if inc is not None]
         
         if not active_incidents:
             road_segment.current_status = RoadStatus.OPEN.value
@@ -174,9 +180,9 @@ class IncidentService:
 
         # Check for blocking conditions
         has_blockage = any(
-            inc.severity == IncidentSeverity.CRITICAL.value
-            or not inc.passable_by_heavy_vehicles
-            or (inc.category in [IncidentCategory.LANDSLIDE.value, IncidentCategory.FLOOD.value, IncidentCategory.BRIDGE_DAMAGE.value] and inc.blocked_lanes >= 2)
+            getattr(inc, "severity", None) == IncidentSeverity.CRITICAL.value
+            or not getattr(inc, "passable_by_heavy_vehicles", True)
+            or (getattr(inc, "category", None) in [IncidentCategory.LANDSLIDE.value, IncidentCategory.FLOOD.value, IncidentCategory.BRIDGE_DAMAGE.value] and (getattr(inc, "blocked_lanes", 0) or 0) >= 2)
             for inc in active_incidents
         )
 
@@ -185,8 +191,8 @@ class IncidentService:
             road_segment.risk_score = 0.95
         else:
             road_segment.current_status = RoadStatus.RISKY.value
-            max_severity = max(inc.severity for inc in active_incidents)
-            road_segment.risk_score = 0.65 if max_severity == IncidentSeverity.HIGH.value else 0.40
+            severities = [getattr(inc, "severity", "") for inc in active_incidents]
+            road_segment.risk_score = 0.65 if IncidentSeverity.HIGH.value in severities else 0.40
 
     def _trigger_incident_alert(self, incident: Incident, road_segment: Optional[RoadSegment]) -> None:
         """Generate operational alerts based on incident severity."""
@@ -217,6 +223,9 @@ class IncidentService:
             return None
 
         def dist(seg: RoadSegment) -> float:
+            coords = seg.coordinates
+            if coords:
+                return min((lat - pt[0]) ** 2 + (lng - pt[1]) ** 2 for pt in coords)
             mid_lat = (seg.start_lat + seg.end_lat) / 2.0
             mid_lng = (seg.start_lng + seg.end_lng) / 2.0
             return (lat - mid_lat) ** 2 + (lng - mid_lng) ** 2

@@ -11,7 +11,9 @@ class ShipmentRepository(BaseRepository[Shipment]):
     def __init__(self, db: Session) -> None:
         super().__init__(Shipment, db)
 
-    def get_by_tracking_number(self, tracking_number: str) -> Optional[Shipment]:
+    def get_by_tracking_number(self, tracking_number: Optional[str]) -> Optional[Shipment]:
+        if not tracking_number:
+            return None
         stmt = select(Shipment).where(Shipment.tracking_number == tracking_number)
         return self.db.scalars(stmt).first()
 

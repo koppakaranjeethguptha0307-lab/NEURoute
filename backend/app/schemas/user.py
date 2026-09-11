@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
     email: EmailStr
     full_name: Optional[str] = None
-    role: UserRole = UserRole.GENERAL_VIEWER
+    role: UserRole = UserRole.FIELD_OFFICER
     is_active: bool = True
     phone_number: Optional[str] = None
     department: Optional[str] = None

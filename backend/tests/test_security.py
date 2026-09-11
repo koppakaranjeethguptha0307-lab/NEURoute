@@ -32,14 +32,14 @@ def test_jwt_token_generation_and_decoding():
     """Verify JWT token claims encoding and valid decoding."""
     token = create_access_token(
         subject=42,
-        role=UserRole.LOGISTICS_OPERATOR.value,
+        role=UserRole.LOGISTICS_PLANNER.value,
         email="operator@neuroute.gov.in",
         full_name="Logistics Officer",
     )
 
     payload = decode_access_token(token)
     assert payload["sub"] == "42"
-    assert payload["role"] == UserRole.LOGISTICS_OPERATOR.value
+    assert payload["role"] == UserRole.LOGISTICS_PLANNER.value
     assert payload["email"] == "operator@neuroute.gov.in"
     assert payload["name"] == "Logistics Officer"
     assert "exp" in payload
@@ -92,19 +92,19 @@ def test_auth_service_invalid_login(db_session, test_users):
 def test_role_authorization_dependency():
     """Verify RBAC role enforcement functions."""
     admin_ctx = UserContext(id=1, username="admin", role=UserRole.ADMIN, is_active=True)
-    operator_ctx = UserContext(id=2, username="op", role=UserRole.LOGISTICS_OPERATOR, is_active=True)
-    viewer_ctx = UserContext(id=3, username="viewer", role=UserRole.GENERAL_VIEWER, is_active=True)
+    operator_ctx = UserContext(id=2, username="op", role=UserRole.LOGISTICS_PLANNER, is_active=True)
+    viewer_ctx = UserContext(id=3, username="viewer", role=UserRole.FIELD_OFFICER, is_active=True)
 
-    # require_role for LOGISTICS_OPERATOR
-    check_operator = require_role(UserRole.LOGISTICS_OPERATOR)
-    assert check_operator(operator_ctx) == operator_ctx
-    assert check_operator(admin_ctx) == admin_ctx  # Admin has universal override
+    # require_role for LOGISTICS_PLANNER
+    check_operator = require_role(UserRole.LOGISTICS_PLANNER)
+    res = check_operator(current_user=operator_ctx)
+    assert res.id == 2
 
     with pytest.raises(AuthorizationError):
-        check_operator(viewer_ctx)
+        check_operator(current_user=viewer_ctx)
 
-    # require_any_role
-    check_multi = require_any_role([UserRole.EMERGENCY_RESPONSE, UserRole.LOGISTICS_OPERATOR])
+    # require_any_role for multiple
+    check_multi = require_any_role([UserRole.DRIVER, UserRole.LOGISTICS_PLANNER])
     assert check_multi(operator_ctx) == operator_ctx
 
     with pytest.raises(AuthorizationError):

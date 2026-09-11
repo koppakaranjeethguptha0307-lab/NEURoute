@@ -6,13 +6,15 @@ from sqlalchemy.orm import relationship
 from app.database.base import Base
 
 
+import uuid
+
 class LogisticsHub(Base):
     __tablename__ = "logistics_hubs"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(50), primary_key=True, index=True, default=lambda: f"hub-{uuid.uuid4().hex[:8]}")
     name = Column(String(150), nullable=False)
     hub_type = Column(String(50), default="WAREHOUSE", nullable=False)  # CENTRAL_DEPOT, FORWARD_DEPOT, EMERGENCY_SUPPLY_DEPOT
-    state = Column(String(50), nullable=False, index=True)
+    state = Column(String(50), nullable=True, index=True)
     district_id = Column(Integer, ForeignKey("districts.id"), nullable=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)

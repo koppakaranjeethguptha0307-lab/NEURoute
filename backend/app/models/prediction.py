@@ -8,11 +8,13 @@ from sqlalchemy.orm import relationship
 from app.database.base import Base
 
 
+import uuid
+
 class Prediction(Base):
     __tablename__ = "predictions"
 
-    id = Column(Integer, primary_key=True, index=True)
-    segment_id = Column(Integer, ForeignKey("road_segments.id"), nullable=True)
+    id = Column(String(50), primary_key=True, index=True, default=lambda: f"pred-{uuid.uuid4().hex[:8]}")
+    segment_id = Column(String(50), ForeignKey("road_segments.id"), nullable=True)
     prediction_type = Column(String(50), nullable=True, default="RISK_SCORE")
     target_entity_type = Column(String(50), nullable=True, default="ROAD_SEGMENT")
     target_entity_id = Column(String(50), nullable=True)

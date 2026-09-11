@@ -92,6 +92,22 @@ export const RouteIntelligencePage: React.FC = () => {
 
   useEffect(() => {
     fetchRoutesForParams();
+    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
+      return sseClient.subscribe((evt) => {
+        if (
+          evt &&
+          (evt.event === 'SIMULATION_RESET' ||
+            evt.event === 'ROAD_STATUS_UPDATED' ||
+            evt.event === 'WEATHER_UPDATED' ||
+            evt.event === 'DEMO_SCENARIO_COMPLETED')
+        ) {
+          fetchRoutesForParams();
+        }
+      });
+    });
+    return () => {
+      unsubPromise.then((unsub) => unsub && unsub());
+    };
   }, [fetchRoutesForParams]);
 
   const handlePlanRoute = async (e: React.FormEvent) => {

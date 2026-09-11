@@ -8,6 +8,13 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+import os
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[3]
+DEFAULT_DB_PATH = (ROOT_DIR / "neuroute.db").as_posix()
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -34,8 +41,8 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = Field(
-        default="sqlite:///./neuroute.db",
-        description="Database connection string (SQLite for zero-config dev/demo, PostgreSQL+PostGIS for prod)"
+        default="postgresql+psycopg2://neuroute_user:neuroute_pass@localhost:5432/neuroute",
+        description="Database connection string (PostgreSQL+PostGIS for production)"
     )
 
     # CORS Configuration
@@ -59,11 +66,23 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
-        if isinstance(v, str) and not v.startswith("["):
-            return [i.strip() for i in v.split(",") if i.strip()]
-        elif isinstance(v, (list, str)):
+        if isinstance(v, str):
+            if v == "*" or v.strip() == "*":
+                return ["*"]
+            if not v.startswith("["):
+                return [i.strip() for i in v.split(",") if i.strip()]
+        elif isinstance(v, list):
             return v  # type: ignore
         return ["*"]
+
+    @field_validator("JWT_SECRET")
+    @classmethod
+    def validate_jwt_secret(cls, v: str, info) -> str:
+        env = info.data.get("ENVIRONMENT", "development")
+        if str(env).lower() == "production":
+            if "development-only" in v or "change-in-prod" in v or len(v) < 16:
+                raise ValueError("CRITICAL SECURITY FAILURE: Production mode requires a secure JWT_SECRET environment variable.")
+        return v
 
     @property
     def is_production(self) -> bool:

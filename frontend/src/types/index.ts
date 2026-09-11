@@ -1,12 +1,12 @@
 // TypeScript interfaces and domain contract stubs for NEURoute
 
-export type UserRole = 'dispatcher' | 'admin' | 'field_officer' | 'analyst'; // TODO: confirm with backend
+export type UserRole = 'ADMIN' | 'FIELD_OFFICER' | 'DRIVER' | 'LOGISTICS_PLANNER';
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: UserRole; // TODO: confirm with backend
+  role: UserRole;
   hubLocation?: string;
   avatar?: string;
 }
@@ -27,6 +27,7 @@ export interface AuthState {
 export interface LoginCredentials {
   email: string;
   password: string;
+  role?: UserRole;
   rememberMe?: boolean;
 }
 

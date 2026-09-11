@@ -1,4 +1,5 @@
 import { registerMockEndpoint, MockRequestContext } from '@/services/apiClient';
+import { mockRoadSegmentsGeoJSON, mockHazards, mockHubs } from '@/services/mockData';
 import { MOCK_SHIPMENTS } from './shipments';
 import { MOCK_VEHICLES } from './vehicles';
 import { MOCK_INCIDENTS } from './incidents';
@@ -146,6 +147,56 @@ export function initMockFixtures() {
   // Analytics endpoints
   registerMockEndpoint('GET', '/analytics/districts', () => MOCK_DISTRICT_ANALYTICS);
   registerMockEndpoint('GET', '/analytics/trends', () => MOCK_MONTHLY_TRENDS);
+
+  // GIS & Map Endpoints
+  registerMockEndpoint('GET', '/gis/roads', () => mockRoadSegmentsGeoJSON);
+  registerMockEndpoint('GET', '/roads', () => mockRoadSegmentsGeoJSON);
+  registerMockEndpoint('GET', '/hazards', () => mockHazards);
+  registerMockEndpoint('GET', '/hubs', () => mockHubs);
+
+  // Simulation Control Center endpoints
+  registerMockEndpoint('GET', '/simulation/status', () => ({
+    emergency_mode: false,
+    target_road: { code: 'seg-nh06-03', name: 'Sonapur Passage', status: 'OPEN', risk_score: 0.15 },
+    vehicle_telemetry: {
+      vehicle_id: 1,
+      registration_number: 'AS-01-EC-3312',
+      latitude: 25.1120,
+      longitude: 92.3680,
+      speed_kmh: 42.5,
+      route_progress_pct: 35.0,
+      current_road_name: 'NH-06 Sonapur Corridor',
+      estimated_eta_minutes: 180,
+      source: 'SIMULATED',
+    },
+    cold_chain_telemetry: {
+      shipment_id: 1,
+      temperature_c: 4.8,
+      status: 'NORMAL',
+      source: 'SIMULATED TELEMETRY',
+    },
+    weather: {
+      location_name: 'Sonapur Gorge',
+      rainfall_mm: 12.0,
+      condition: 'MODERATE_RAIN',
+      source: 'LIVE — Open-Meteo',
+    },
+    active_incidents_count: 1,
+    data_sources: {
+      gps: 'SIMULATED — NEURoute Simulator',
+      weather: 'LIVE — Open-Meteo',
+      cold_chain: 'SIMULATED TELEMETRY',
+      government: 'NOT CONFIGURED',
+    },
+    timestamp: new Date().toISOString(),
+  }));
+
+  registerMockEndpoint('POST', '/simulation/rainfall', () => ({ status: 'SUCCESS', message: 'Heavy rainfall simulated' }));
+  registerMockEndpoint('POST', '/simulation/landslide', () => ({ status: 'BLOCKED', message: 'Sonapur landslide simulated' }));
+  registerMockEndpoint('POST', '/simulation/gps-step', () => ({ status: 'SUCCESS', message: 'GPS position advanced' }));
+  registerMockEndpoint('POST', '/simulation/cold-chain', () => ({ status: 'SUCCESS', message: 'Cold-chain temperature advanced' }));
+  registerMockEndpoint('POST', '/simulation/emergency-mode', () => ({ emergency_mode: true, message: 'Emergency mode toggled' }));
+  registerMockEndpoint('POST', '/simulation/reset', () => ({ status: 'SUCCESS', message: 'Simulation reset to baseline' }));
 }
 
 // Auto-initialize mock registry for demo operation & 404 endpoint fallbacks

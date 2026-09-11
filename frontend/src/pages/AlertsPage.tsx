@@ -13,15 +13,30 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '@/services/apiClient';
-import { OperationalAlert, AlertCategory } from '@/types';
+import { OperationalAlert, AlertCategory, AlertSeverity } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Skeleton } from '@/components/common/LoadingSkeleton';
 import { EmptyState } from '@/components/common/EmptyState';
+import { LanguageSelector } from '@/components/common/LanguageSelector';
+import {
+  SupportedLanguage,
+  getSelectedAlertLanguage,
+  setSelectedAlertLanguage,
+  localizeAlert,
+} from '@/utils/i18nAlerts';
 
 export const AlertsPage: React.FC = () => {
   const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+
+  // Multilingual Alerts State
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(getSelectedAlertLanguage());
+
+  const handleLanguageChange = (lang: SupportedLanguage) => {
+    setCurrentLanguage(lang);
+    setSelectedAlertLanguage(lang);
+  };
 
   // Filters
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -32,7 +47,18 @@ export const AlertsPage: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await apiClient.get<OperationalAlert[]>('/alerts');
-      setAlerts(Array.isArray(data) ? data : []);
+      const rawList = Array.isArray(data) ? data : [];
+      const normalized: OperationalAlert[] = rawList.map((a: any) => ({
+        ...a,
+        id: String(a.id),
+        title: a.title || 'Operational Advisory',
+        message: a.message || '',
+        read: a.read ?? a.is_read ?? false,
+        timestamp: a.timestamp || a.created_at || new Date().toISOString(),
+        severity: (a.severity?.toLowerCase() || 'info') as AlertSeverity,
+        category: (a.category?.toLowerCase() || 'operational') as AlertCategory,
+      }));
+      setAlerts(normalized);
     } catch (err) {
       console.error('Failed to load alerts:', err);
     } finally {
@@ -42,6 +68,23 @@ export const AlertsPage: React.FC = () => {
 
   useEffect(() => {
     fetchAlerts();
+    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
+      return sseClient.subscribe((evt) => {
+        if (
+          evt &&
+          (evt.event === 'SIMULATION_RESET' ||
+            evt.event === 'ROAD_STATUS_UPDATED' ||
+            evt.event === 'COLD_CHAIN_ALERT' ||
+            evt.event === 'WEATHER_UPDATED' ||
+            evt.event === 'DEMO_SCENARIO_COMPLETED')
+        ) {
+          fetchAlerts();
+        }
+      });
+    });
+    return () => {
+      unsubPromise.then((unsub) => unsub && unsub());
+    };
   }, [fetchAlerts]);
 
   // Mark all as read
@@ -59,7 +102,11 @@ export const AlertsPage: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     try {
-      await apiClient.patch('/alerts/read', { id });
+      try {
+        await apiClient.patch(`/alerts/${id}/read`);
+      } catch {
+        await apiClient.patch('/alerts/read', { id });
+      }
       setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, read: true } : a)));
     } catch (err) {
       console.error('Failed to mark alert as read:', err);
@@ -68,15 +115,27 @@ export const AlertsPage: React.FC = () => {
 
   // Filtering logic
   const filteredAlerts = alerts.filter((alert) => {
+    const title = alert.title || '';
+    const message = alert.message || '';
     const matchesSearch =
-      alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      alert.message.toLowerCase().includes(searchTerm.toLowerCase());
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      message.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesSeverity = severityFilter === 'all' || alert.severity === severityFilter;
-    const matchesCategory = categoryFilter === 'all' || alert.category === categoryFilter;
+    const matchesSeverity = severityFilter === 'all' || alert.severity.toLowerCase() === severityFilter.toLowerCase();
+    const matchesCategory = categoryFilter === 'all' || alert.category.toLowerCase() === categoryFilter.toLowerCase();
     const matchesTab = activeTab === 'all' || (activeTab === 'unread' && !alert.read);
 
     return matchesSearch && matchesSeverity && matchesCategory && matchesTab;
+  });
+
+  // Localize alerts according to selected language
+  const localizedAlerts = filteredAlerts.map((alert) => {
+    const loc = localizeAlert(alert.title, alert.message, currentLanguage);
+    return {
+      ...alert,
+      title: loc.title,
+      message: loc.message,
+    };
   });
 
   const unreadCount = alerts.filter((a) => !a.read).length;
@@ -113,14 +172,22 @@ export const AlertsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleMarkAllRead}
-          disabled={unreadCount === 0}
-          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-50"
-        >
-          <CheckCheck className="h-4 w-4 text-brand-600" />
-          <span>Mark All as Read ({unreadCount})</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Language Selector */}
+          <LanguageSelector
+            currentLanguage={currentLanguage}
+            onLanguageChange={handleLanguageChange}
+          />
+
+          <button
+            onClick={handleMarkAllRead}
+            disabled={unreadCount === 0}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 active:scale-95 transition-all disabled:opacity-50"
+          >
+            <CheckCheck className="h-4 w-4 text-brand-600" />
+            <span>Mark All as Read ({unreadCount})</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs & Filter Bar */}
@@ -224,7 +291,7 @@ export const AlertsPage: React.FC = () => {
             }}
           />
         ) : (
-          filteredAlerts.map((alert) => (
+          localizedAlerts.map((alert) => (
             <div
               key={alert.id}
               className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border p-5 transition-all ${

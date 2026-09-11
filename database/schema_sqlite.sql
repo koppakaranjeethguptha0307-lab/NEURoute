@@ -176,6 +176,7 @@ CREATE TABLE IF NOT EXISTS vehicles (
     heading_deg FLOAT DEFAULT 0.0,
     fuel_level_percent FLOAT NOT NULL DEFAULT 100.0,
     is_active BOOLEAN NOT NULL DEFAULT 1,
+    gps_source VARCHAR(20) NOT NULL DEFAULT 'SIMULATED',
     last_telemetry_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -250,6 +251,11 @@ CREATE TABLE IF NOT EXISTS shipments (
     current_lat FLOAT,
     current_lng FLOAT,
     notes TEXT,
+    is_cold_chain BOOLEAN NOT NULL DEFAULT 0,
+    temp_min_c FLOAT DEFAULT 2.0,
+    temp_max_c FLOAT DEFAULT 8.0,
+    current_temp_c FLOAT,
+    temp_status VARCHAR(20) DEFAULT 'NORMAL',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -387,6 +393,21 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     details_raw TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table 18: cold_chain_telemetry (Software Cold-Chain Monitoring)
+CREATE TABLE IF NOT EXISTS cold_chain_telemetry (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    shipment_id VARCHAR(50) NOT NULL REFERENCES shipments(id) ON DELETE CASCADE,
+    vehicle_id VARCHAR(50) REFERENCES vehicles(id) ON DELETE SET NULL,
+    temperature_c FLOAT NOT NULL,
+    humidity_percent FLOAT NOT NULL DEFAULT 65.0,
+    status VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+    source VARCHAR(30) NOT NULL DEFAULT 'SIMULATED_TELEMETRY',
+    ambient_temp_c FLOAT NOT NULL DEFAULT 28.0,
+    location_lat FLOAT,
+    location_lng FLOAT,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ----------------------------------------------------------------------------

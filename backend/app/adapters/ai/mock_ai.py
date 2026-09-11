@@ -4,7 +4,7 @@ Provides deterministic baseline calculations clearly marked with `is_fallback = 
 DOES NOT replace or duplicate the AI teammate's production ML algorithms.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from app.adapters.ai.base import (
     ClassifiedIncidentResult,
     DelayEstimatorProtocol,
@@ -72,7 +72,7 @@ class MockAIAdapter(
 
     async def predict_segment_risk(
         self,
-        segment_id: int,
+        segment_id: Union[str, int],
         rainfall_mm: float,
         active_incidents_count: int,
         historical_failure_rate: float,

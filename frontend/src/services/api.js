@@ -29,12 +29,14 @@ import {
   mockRoutePlanResponse,
 } from './mockData';
 
-const BASE_URL = import.meta.env?.VITE_API_BASE_URL || '/api/v1';
+const BASE_URL = import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL || '/api/v1';
+const IS_DEMO = import.meta.env?.VITE_DEMO_MODE === 'true';
 
 /**
  * Robust request executor with granular status mapping and layer-independent fallback
  */
-async function executeApiRequest(endpoint, options = {}, fallbackData = null, allowMockFallback = true) {
+async function executeApiRequest(endpoint, options = {}, fallbackData = null, allowMockFallback = IS_DEMO) {
+  const shouldFallback = allowMockFallback && IS_DEMO && fallbackData !== null;
   const url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
   try {
@@ -72,7 +74,7 @@ async function executeApiRequest(endpoint, options = {}, fallbackData = null, al
     // 2. Resource Not Found (HTTP 404)
     if (response.status === 404) {
       const errMsg = `HTTP 404: Endpoint ${endpoint} is not mounted on the backend server.`;
-      if (allowMockFallback && fallbackData !== null) {
+      if (shouldFallback) {
         return {
           data: fallbackData,
           status: 'FALLBACK_MOCK',
@@ -95,7 +97,7 @@ async function executeApiRequest(endpoint, options = {}, fallbackData = null, al
     // 3. Server Errors (HTTP 500, 502, 503)
     if (response.status >= 500) {
       const errMsg = `HTTP ${response.status}: Backend service internal error (${response.statusText}).`;
-      if (allowMockFallback && fallbackData !== null) {
+      if (shouldFallback) {
         return {
           data: fallbackData,
           status: 'FALLBACK_MOCK',
@@ -118,7 +120,7 @@ async function executeApiRequest(endpoint, options = {}, fallbackData = null, al
     // 4. Other Non-OK responses
     if (!response.ok) {
       const errMsg = `HTTP ${response.status}: ${response.statusText}`;
-      if (allowMockFallback && fallbackData !== null) {
+      if (shouldFallback) {
         return {
           data: fallbackData,
           status: 'FALLBACK_MOCK',
@@ -162,7 +164,7 @@ async function executeApiRequest(endpoint, options = {}, fallbackData = null, al
       ? `Network timeout: Request to ${endpoint} exceeded 3.5s.`
       : `Network error: Failed to connect to ${url} (${err.message}).`;
 
-    if (allowMockFallback && fallbackData !== null) {
+    if (shouldFallback) {
       return {
         data: fallbackData,
         status: 'FALLBACK_MOCK',
@@ -189,7 +191,7 @@ export const api = {
    * GET /api/v1/roads
    */
   async getRoadsGeoJSON(allowFallback = true) {
-    return executeApiRequest('/roads', { method: 'GET' }, mockRoadSegmentsGeoJSON, allowFallback);
+    return executeApiRequest('/gis/roads', { method: 'GET' }, mockRoadSegmentsGeoJSON, allowFallback);
   },
 
   /**

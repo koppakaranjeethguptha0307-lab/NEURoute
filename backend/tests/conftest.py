@@ -41,6 +41,16 @@ def engine():
     test_engine.dispose()
 
 
+@pytest.fixture(autouse=True)
+def override_get_db_dependency(db_session: Session):
+    """Override FastAPI get_db dependency for all test client calls across tests."""
+    from app.main import app
+    from app.dependencies import get_db
+    app.dependency_overrides[get_db] = lambda: db_session
+    yield
+    app.dependency_overrides.pop(get_db, None)
+
+
 @pytest.fixture
 def db_session(engine) -> Generator[Session, None, None]:
     """Provide a transactional database session per test with automatic rollback."""
@@ -55,6 +65,26 @@ def db_session(engine) -> Generator[Session, None, None]:
         session.add(role)
     session.flush()
 
+    role_objs = {r.name: r for r in session.query(Role).all()}
+    demo_users = [
+        ("admin", "admin@neuroute.in", "Admin Control", "ADMIN"),
+        ("field", "field@neuroute.in", "Field Officer", "FIELD_OFFICER"),
+        ("driver", "driver@neuroute.in", "Transport Driver", "DRIVER"),
+        ("planner", "planner@neuroute.in", "Logistics Planner", "LOGISTICS_PLANNER"),
+    ]
+    for uname, email, fname, rname in demo_users:
+        if rname in role_objs:
+            u = User(
+                username=uname,
+                email=email,
+                hashed_password=hash_password("password123"),
+                full_name=fname,
+                role_id=role_objs[rname].id,
+                is_active=True,
+            )
+            session.add(u)
+    session.flush()
+
     yield session
 
     session.close()
@@ -66,8 +96,8 @@ def db_session(engine) -> Generator[Session, None, None]:
 def test_users(db_session: Session) -> dict:
     """Pre-seed sample test users for RBAC testing."""
     admin_role = db_session.query(Role).filter(Role.name == UserRole.ADMIN.value).first()
-    operator_role = db_session.query(Role).filter(Role.name == UserRole.LOGISTICS_OPERATOR.value).first()
-    viewer_role = db_session.query(Role).filter(Role.name == UserRole.GENERAL_VIEWER.value).first()
+    operator_role = db_session.query(Role).filter(Role.name == UserRole.LOGISTICS_PLANNER.value).first()
+    viewer_role = db_session.query(Role).filter(Role.name == UserRole.DRIVER.value).first()
 
     admin = User(
         username="admin_user",
@@ -78,18 +108,18 @@ def test_users(db_session: Session) -> dict:
         is_active=True,
     )
     operator = User(
-        username="operator_user",
-        email="operator@neuroute.gov.in",
-        hashed_password=hash_password("operator_pass123"),
-        full_name="Logistics Controller",
+        username="planner_user",
+        email="planner@neuroute.gov.in",
+        hashed_password=hash_password("planner_pass123"),
+        full_name="Logistics Planner",
         role_id=operator_role.id,
         is_active=True,
     )
     viewer = User(
-        username="viewer_user",
-        email="viewer@neuroute.gov.in",
-        hashed_password=hash_password("viewer_pass123"),
-        full_name="Public Viewer",
+        username="driver_user",
+        email="driver@neuroute.gov.in",
+        hashed_password=hash_password("driver_pass123"),
+        full_name="Transport Operator",
         role_id=viewer_role.id,
         is_active=True,
     )

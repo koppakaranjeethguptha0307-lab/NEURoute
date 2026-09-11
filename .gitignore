@@ -26,6 +26,8 @@ venv.bak/
 *.egg
 .pytest_cache/
 .mypy_cache/
+*.db
+scratch/
 
 # Environment Variables
 .env

@@ -6,12 +6,14 @@ from sqlalchemy.orm import relationship
 from app.database.base import Base
 
 
+import uuid
+
 class Trip(Base):
     __tablename__ = "trips"
 
-    id = Column(Integer, primary_key=True, index=True)
-    trip_code = Column(String(50), unique=True, nullable=False, index=True)
-    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    id = Column(String(50), primary_key=True, index=True, default=lambda: f"trip-{uuid.uuid4().hex[:8]}")
+    trip_code = Column(String(50), unique=True, nullable=True, index=True)
+    vehicle_id = Column(String(50), ForeignKey("vehicles.id"), nullable=False)
     driver_name = Column(String(100), nullable=True)
     status = Column(String(20), default="PLANNED", nullable=False)  # PLANNED, ACTIVE, COMPLETED, CANCELLED
     origin_lat = Column(Float, nullable=False)

@@ -130,13 +130,21 @@ def test_e2e_ai_api_flow(db_session: Session):
     Test End-to-End Flow:
     FastAPI API Request -> AIService -> AIIntegrationAdapter -> Real AI Team Code -> Prediction Model -> Database Persistence -> API Response
     """
+    from app.dependencies import get_current_active_user
+    from app.schemas.auth import UserContext
+    from app.schemas.enums import UserRole
+
     def override_get_db():
         try:
             yield db_session
         finally:
             pass
 
+    def override_get_current_user():
+        return UserContext(id=1, username="test_admin", role=UserRole.ADMIN.value, is_active=True)
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_active_user] = override_get_current_user
     client = TestClient(app)
 
     try:

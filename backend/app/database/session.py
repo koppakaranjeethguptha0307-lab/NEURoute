@@ -11,14 +11,33 @@ from app.core.config import settings
 from app.core.logging import logger
 from app.database.base import Base
 
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+if settings.is_production and settings.is_sqlite:
+    raise RuntimeError(
+        "CRITICAL DATABASE ERROR: Production mode requires a PostgreSQL + PostGIS database. "
+        "SQLite runtime fallback is disabled in production. Set DATABASE_URL environment variable."
+    )
+
 connect_args = {}
+engine_kwargs = {"pool_pre_ping": True}
+
 if settings.is_sqlite:
     connect_args = {"check_same_thread": False}
+else:
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+    })
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     connect_args=connect_args,
-    pool_pre_ping=True,
+    **engine_kwargs,
 )
 
 SessionLocal = sessionmaker(
@@ -42,6 +61,16 @@ def init_db() -> None:
     try:
         # Import all models so metadata is complete
         import app.models  # noqa: F401
+        
+        # If using PostgreSQL, attempt to create extension PostGIS
+        if not settings.is_sqlite:
+            try:
+                with engine.connect() as conn:
+                    conn.execute(Base.metadata.schema and None or __import__('sqlalchemy').text("CREATE EXTENSION IF NOT EXISTS postgis;"))
+                    conn.commit()
+            except Exception as pe:
+                logger.warning(f"PostGIS extension creation notice/warning: {pe}")
+
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified/created successfully", extra={"service": "database", "status": "INITIALIZED"})
     except Exception as e:

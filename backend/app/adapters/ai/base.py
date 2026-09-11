@@ -1,6 +1,6 @@
 """AI Integration Interfaces / Protocols."""
 
-from typing import Dict, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol, Union
 from pydantic import BaseModel
 from app.schemas.enums import IncidentCategory, IncidentSeverity
 
@@ -14,7 +14,7 @@ class ClassifiedIncidentResult(BaseModel):
 
 
 class SegmentRiskResult(BaseModel):
-    segment_id: int
+    segment_id: Union[str, int]
     risk_score: float
     risk_level: str
     contributing_factors: Dict[str, float] = {}
@@ -38,7 +38,7 @@ class IncidentClassifierProtocol(Protocol):
 class RiskPredictorProtocol(Protocol):
     async def predict_segment_risk(
         self,
-        segment_id: int,
+        segment_id: Union[str, int],
         rainfall_mm: float,
         active_incidents_count: int,
         historical_failure_rate: float,

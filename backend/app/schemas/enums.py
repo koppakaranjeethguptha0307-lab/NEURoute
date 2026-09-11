@@ -8,10 +8,9 @@ from enum import Enum
 
 class UserRole(str, Enum):
     ADMIN = "ADMIN"
-    LOGISTICS_OPERATOR = "LOGISTICS_OPERATOR"
-    GOVERNMENT_AUTHORITY = "GOVERNMENT_AUTHORITY"
-    EMERGENCY_RESPONSE = "EMERGENCY_RESPONSE"
-    GENERAL_VIEWER = "GENERAL_VIEWER"
+    FIELD_OFFICER = "FIELD_OFFICER"
+    DRIVER = "DRIVER"
+    LOGISTICS_PLANNER = "LOGISTICS_PLANNER"
 
 
 class RoadStatus(str, Enum):
@@ -44,6 +43,7 @@ class IncidentCategory(str, Enum):
     BRIDGE_DAMAGE = "BRIDGE_DAMAGE"
     SNOWFALL_AVALANCHE = "SNOWFALL_AVALANCHE"
     HEAVY_RAIN = "HEAVY_RAIN"
+    HEAVY_RAINFALL = "HEAVY_RAINFALL"
     ACCIDENT = "ACCIDENT"
     CONSTRUCTION = "CONSTRUCTION"
 
@@ -52,15 +52,22 @@ class ShipmentStatus(str, Enum):
     CREATED = "CREATED"
     ASSIGNED = "ASSIGNED"
     IN_TRANSIT = "IN_TRANSIT"
+    DELAYED = "DELAYED"
+    REROUTED = "REROUTED"
+    EXCEPTION = "EXCEPTION"
+    PENDING = "PENDING"
+    PLANNED = "PLANNED"
     DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
 
 
 class CargoPriority(str, Enum):
     LOW = "LOW"
+    STANDARD = "STANDARD"
     NORMAL = "NORMAL"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
+    EMERGENCY = "EMERGENCY"
 
 
 class VehicleStatus(str, Enum):
@@ -73,6 +80,7 @@ class VehicleStatus(str, Enum):
 
 class AlertSeverity(str, Enum):
     INFORMATIONAL = "INFORMATIONAL"
+    INFO = "INFO"
     WARNING = "WARNING"
     CRITICAL = "CRITICAL"
 

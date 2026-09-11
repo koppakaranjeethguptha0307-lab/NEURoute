@@ -16,10 +16,15 @@ from app.models.weather import WeatherObservation
 from app.models.hazard import Hazard
 from app.models.alert import Alert
 from app.models.audit import AuditLog
+from app.models.cold_chain import ColdChainTelemetry
+from app.models.government_advisory import GovernmentAdvisory
+
+from app.models.access_request import AccessRequest
 
 __all__ = [
     "Role",
     "User",
+    "AccessRequest",
     "District",
     "RoadSegment",
     "Incident",
@@ -35,4 +40,6 @@ __all__ = [
     "Hazard",
     "Alert",
     "AuditLog",
+    "ColdChainTelemetry",
+    "GovernmentAdvisory",
 ]

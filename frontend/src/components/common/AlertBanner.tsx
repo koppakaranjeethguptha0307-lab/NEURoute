@@ -3,17 +3,19 @@ import { AlertTriangle, ArrowRight, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '@/services/apiClient';
 import { OperationalAlert } from '@/types';
+import { getSelectedAlertLanguage, localizeAlert } from '@/utils/i18nAlerts';
 
 export const AlertBanner: React.FC = () => {
   const [criticalAlert, setCriticalAlert] = useState<OperationalAlert | null>(null);
   const [isDismissed, setIsDismissed] = useState<boolean>(false);
+  const currentLang = getSelectedAlertLanguage();
 
   useEffect(() => {
     async function loadCriticalAlert() {
       try {
         const alerts = await apiClient.get<OperationalAlert[]>('/alerts');
         if (Array.isArray(alerts)) {
-          const topCritical = alerts.find((a) => a.severity === 'critical' && !a.read);
+          const topCritical = alerts.find((a) => (a.severity === 'critical' || a.severity === 'warning') && !a.read);
           if (topCritical) {
             setCriticalAlert(topCritical);
           }
@@ -27,6 +29,8 @@ export const AlertBanner: React.FC = () => {
 
   if (!criticalAlert || isDismissed) return null;
 
+  const loc = localizeAlert(criticalAlert.title, criticalAlert.message, currentLang);
+
   return (
     <div className="relative z-20 flex items-center justify-between gap-3 bg-gradient-to-r from-rose-950 via-rose-900 to-slate-900 px-6 py-2.5 text-xs text-white shadow-md border-b border-rose-800/60">
       <div className="flex items-center gap-2.5 overflow-hidden">
@@ -37,8 +41,8 @@ export const AlertBanner: React.FC = () => {
           <strong className="font-bold text-rose-200 uppercase tracking-wider mr-2 text-[11px]">
             Regional Hazard Alert:
           </strong>
-          <span className="text-slate-200">{criticalAlert.title}</span>
-          <span className="hidden md:inline text-slate-400 ml-2">— {criticalAlert.message}</span>
+          <span className="text-slate-200">{loc.title}</span>
+          <span className="hidden md:inline text-slate-400 ml-2">— {loc.message}</span>
         </div>
       </div>
 

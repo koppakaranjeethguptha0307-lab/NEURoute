@@ -1,7 +1,9 @@
 import React from 'react';
-import { Bell, Search, User as UserIcon, LogOut, Menu } from 'lucide-react';
+import { Bell, Search, User as UserIcon, LogOut, Menu, ShieldAlert } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEmergencyMode } from '@/contexts/EmergencyContext';
+import { OfflineSyncIndicator } from '@/components/common/OfflineSyncIndicator';
 
 const pageTitles: Record<string, string> = {
   '/': 'Dashboard Overview',
@@ -22,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { isEmergencyMode, toggleEmergencyMode } = useEmergencyMode();
   const currentTitle = pageTitles[location.pathname] || 'NEURoute Platform';
   const isDemoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -47,9 +50,17 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
           </button>
         )}
         <div>
-          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
-            North-East Region Hub
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400 block">
+              North-East Region Hub
+            </span>
+            <span
+              className="hidden md:inline-flex items-center text-[9px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded cursor-help"
+              title="NEURoute complements national infrastructure-planning platforms by adding operational, disruption-aware logistics intelligence for the North Eastern Region."
+            >
+              Complements PM Gati Shakti
+            </span>
+          </div>
           <h1 className="text-sm sm:text-lg font-bold text-slate-900 leading-tight truncate max-w-[200px] sm:max-w-none">
             {currentTitle}
           </h1>
@@ -58,6 +69,23 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar }) => {
 
       {/* Right: Search, Demo Mode Pill, Alerts & User Profile */}
       <div className="flex items-center gap-2.5 sm:gap-4">
+        {/* Offline Queue Sync Indicator */}
+        <OfflineSyncIndicator />
+
+        {/* Emergency Mode Protocol Toggle */}
+        <button
+          onClick={toggleEmergencyMode}
+          title={isEmergencyMode ? 'Deactivate Emergency Logistics Protocol' : 'Activate Emergency Logistics Protocol'}
+          className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            isEmergencyMode
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-600/30 animate-pulse border border-rose-500'
+              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+          }`}
+        >
+          <ShieldAlert className={`h-3.5 w-3.5 ${isEmergencyMode ? 'text-white' : 'text-rose-600'}`} />
+          <span>{isEmergencyMode ? 'EMERGENCY MODE' : 'Emergency Mode'}</span>
+        </button>
+
         {/* Demo Mode Badge */}
         {isDemoMode && (
           <div

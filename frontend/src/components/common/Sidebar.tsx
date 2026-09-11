@@ -20,16 +20,20 @@ interface NavItem {
   path: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
+  allowedRoles?: string[];
 }
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+  { title: 'Field Console', path: '/field-dashboard', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'FIELD_OFFICER'] },
+  { title: 'Driver Console', path: '/driver-dashboard', icon: LayoutDashboard, allowedRoles: ['ADMIN', 'DRIVER'] },
+  { title: 'User Management', path: '/user-management', icon: ShieldCheck, allowedRoles: ['ADMIN'] },
   { title: 'GIS Map', path: '/gis-map', icon: MapPin },
-  { title: 'Incidents', path: '/incidents', icon: AlertTriangle, badge: '3' },
-  { title: 'Route Intelligence', path: '/routes', icon: Navigation2 },
-  { title: 'Logistics', path: '/logistics', icon: Truck },
+  { title: 'Incidents', path: '/incidents', icon: AlertTriangle, badge: '3', allowedRoles: ['ADMIN', 'FIELD_OFFICER', 'LOGISTICS_PLANNER'] },
+  { title: 'Route Intelligence', path: '/routes', icon: Navigation2, allowedRoles: ['ADMIN', 'LOGISTICS_PLANNER', 'DRIVER'] },
+  { title: 'Logistics', path: '/logistics', icon: Truck, allowedRoles: ['ADMIN', 'LOGISTICS_PLANNER', 'DRIVER'] },
   { title: 'Alerts', path: '/alerts', icon: Bell, badge: '5' },
-  { title: 'Analytics', path: '/analytics', icon: BarChart3 },
+  { title: 'Analytics', path: '/analytics', icon: BarChart3, allowedRoles: ['ADMIN', 'LOGISTICS_PLANNER'] },
 ];
 
 interface SidebarProps {
@@ -112,7 +116,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
             <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
               Operations & Planning
             </div>
-            {navItems.map((item) => {
+            {navItems
+              .filter((item) => !item.allowedRoles || (user?.role && item.allowedRoles.includes(user.role)))
+              .map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink

@@ -9,8 +9,8 @@ class WeatherObservation(Base):
     __tablename__ = "weather_observations"
 
     id = Column(Integer, primary_key=True, index=True)
-    location_name = Column(String(100), nullable=False, index=True)
-    state = Column(String(50), nullable=False, index=True)
+    location_name = Column(String(100), nullable=True, index=True)
+    state = Column(String(50), nullable=True, index=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     temperature_c = Column(Float, nullable=False)

@@ -526,76 +526,92 @@ INCIDENTS_DATA = [
 
 SHIPMENTS_DATA = [
     {
-        "id": "shp-ner-01",
-        "shipment_number": "SHP-2026-MED-01",
-        "goods_type": "Medicines/Vaccines",
+        "id": 1,
+        "tracking_number": "SHP-2026-MED-01",
+        "title": "Emergency Medical Supplies & Vaccines",
+        "cargo_type": "Emergency Medical Supplies & Vaccines",
         "cargo_priority": "CRITICAL",
-        "source_name": "Guwahati Central Strategic Logistics Terminal",
-        "source_lat": 26.1445,
-        "source_lon": 91.7362,
-        "dest_name": "Silchar Southern Valley Forward Depot",
-        "dest_lat": 24.8333,
-        "dest_lon": 92.7789,
-        "vehicle_id": "veh-ner-01",
-        "trip_id": "trip-ner-01",
-        "status": "DELAYED",
-        "estimated_arrival": (datetime.now(timezone.utc) + timedelta(hours=8)).isoformat(),
-        "delay_minutes": 140,
-        "risk_score": 0.88
+        "weight_kg": 450.0,
+        "origin_address": "Guwahati Hub",
+        "origin_lat": 26.1445,
+        "origin_lng": 91.7362,
+        "destination_address": "Silchar Forward Depot",
+        "destination_lat": 24.8333,
+        "destination_lng": 92.7789,
+        "assigned_vehicle_id": 1,
+        "status": "IN_TRANSIT",
+        "is_cold_chain": True,
+        "temp_min_c": 2.0,
+        "temp_max_c": 8.0,
+        "current_temp_c": 4.8,
+        "temp_status": "NORMAL",
+        "dispatched_at": datetime.now(timezone.utc) - timedelta(hours=2),
+        "estimated_delivery": datetime.now(timezone.utc) + timedelta(hours=6),
     },
     {
-        "id": "shp-ner-02",
-        "shipment_number": "SHP-2026-REL-02",
-        "goods_type": "Ration",
+        "id": 2,
+        "tracking_number": "SHP-2026-RLF-02",
+        "title": "Flood Relief Rations & Provisions",
+        "cargo_type": "Flood Relief Rations & Provisions",
         "cargo_priority": "HIGH",
-        "source_name": "Shillong Mountain Lifeline Distribution Center",
-        "source_lat": 25.5788,
-        "source_lon": 91.8933,
-        "dest_name": "Jowai Border Supply Station",
-        "dest_lat": 25.4500,
-        "dest_lon": 92.2100,
-        "vehicle_id": "veh-ner-02",
-        "trip_id": "trip-ner-02",
+        "weight_kg": 4500.0,
+        "origin_address": "Guwahati Hub",
+        "origin_lat": 26.1445,
+        "origin_lng": 91.7362,
+        "destination_address": "Dibrugarh Relief Depot",
+        "destination_lat": 27.4728,
+        "destination_lng": 94.9120,
+        "assigned_vehicle_id": 2,
         "status": "IN_TRANSIT",
-        "estimated_arrival": (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat(),
-        "delay_minutes": 20,
-        "risk_score": 0.35
+        "is_cold_chain": False,
+        "current_temp_c": None,
+        "temp_status": None,
+        "dispatched_at": datetime.now(timezone.utc) - timedelta(hours=4),
+        "estimated_delivery": datetime.now(timezone.utc) + timedelta(hours=5),
     },
     {
-        "id": "shp-ner-03",
-        "shipment_number": "SHP-2026-GEN-03",
-        "goods_type": "General Supplies",
+        "id": 3,
+        "tracking_number": "SHP-2026-MED-03",
+        "title": "Pediatric Anti-Venom & Antibiotics",
+        "cargo_type": "Pediatric Anti-Venom & Antibiotics",
+        "cargo_priority": "HIGH",
+        "weight_kg": 320.0,
+        "origin_address": "Imphal Medical Hub",
+        "origin_lat": 24.8170,
+        "origin_lng": 93.9368,
+        "destination_address": "Silchar Forward Depot",
+        "destination_lat": 24.8333,
+        "destination_lng": 92.7789,
+        "assigned_vehicle_id": 3,
+        "status": "IN_TRANSIT",
+        "is_cold_chain": True,
+        "temp_min_c": 2.0,
+        "temp_max_c": 8.0,
+        "current_temp_c": 5.2,
+        "temp_status": "NORMAL",
+        "dispatched_at": datetime.now(timezone.utc) - timedelta(hours=1),
+        "estimated_delivery": datetime.now(timezone.utc) + timedelta(hours=7),
+    },
+    {
+        "id": 4,
+        "tracking_number": "SHP-2026-IND-04",
+        "title": "Bailey Bridge Structural Steel",
+        "cargo_type": "Bailey Bridge Structural Steel",
         "cargo_priority": "STANDARD",
-        "source_name": "Dimapur Railhead Intermodal Hub",
-        "source_lat": 25.9060,
-        "source_lon": 93.7270,
-        "dest_name": "Kohima Infrastructure Base",
-        "dest_lat": 25.6740,
-        "dest_lon": 94.1100,
-        "vehicle_id": "veh-ner-05",
-        "trip_id": "trip-ner-03",
-        "status": "CREATED",
-        "estimated_arrival": (datetime.now(timezone.utc) + timedelta(hours=6)).isoformat(),
-        "delay_minutes": 0,
-        "risk_score": 0.18
-    },
-    {
-        "id": "shp-ner-04",
-        "shipment_number": "SHP-2026-POL-04",
-        "goods_type": "Diesel",
-        "cargo_priority": "CRITICAL",
-        "source_name": "Guwahati Central Strategic Logistics Terminal",
-        "source_lat": 26.1445,
-        "source_lon": 91.7362,
-        "dest_name": "Tezpur Northern Brahmaputra Forward Base",
-        "dest_lat": 26.6338,
-        "dest_lon": 92.7926,
-        "vehicle_id": "veh-ner-04",
-        "trip_id": "trip-ner-04",
-        "status": "IN_TRANSIT",
-        "estimated_arrival": (datetime.now(timezone.utc) + timedelta(hours=4)).isoformat(),
-        "delay_minutes": 15,
-        "risk_score": 0.22
+        "weight_kg": 14200.0,
+        "origin_address": "Guwahati Hub",
+        "origin_lat": 26.1445,
+        "origin_lng": 91.7362,
+        "destination_address": "Aizawl Infrastructure Base",
+        "destination_lat": 23.7271,
+        "destination_lng": 92.7176,
+        "assigned_vehicle_id": 4,
+        "status": "DELAYED",
+        "is_cold_chain": False,
+        "current_temp_c": None,
+        "temp_status": None,
+        "dispatched_at": datetime.now(timezone.utc) - timedelta(hours=6),
+        "estimated_delivery": datetime.now(timezone.utc) + timedelta(hours=12),
     }
 ]
 
@@ -604,7 +620,7 @@ TRIPS_DATA = [
         "id": "trip-ner-01",
         "vehicle_id": "veh-ner-01",
         "operator_id": "usr-ops-02",
-        "shipment_id": "shp-ner-01",
+        "shipment_id": "1",
         "origin_name": "Guwahati Central Strategic Logistics Terminal",
         "origin_lat": 26.1445,
         "origin_lon": 91.7362,
@@ -624,7 +640,7 @@ TRIPS_DATA = [
         "id": "trip-ner-02",
         "vehicle_id": "veh-ner-02",
         "operator_id": "usr-ops-02",
-        "shipment_id": "shp-ner-02",
+        "shipment_id": "2",
         "origin_name": "Shillong Mountain Lifeline Distribution Center",
         "origin_lat": 25.5788,
         "origin_lon": 91.8933,
@@ -644,7 +660,7 @@ TRIPS_DATA = [
         "id": "trip-ner-03",
         "vehicle_id": "veh-ner-05",
         "operator_id": "usr-ops-02",
-        "shipment_id": "shp-ner-03",
+        "shipment_id": "3",
         "origin_name": "Dimapur Railhead Intermodal Hub",
         "origin_lat": 25.9060,
         "origin_lon": 93.7270,
@@ -664,7 +680,7 @@ TRIPS_DATA = [
         "id": "trip-ner-04",
         "vehicle_id": "veh-ner-04",
         "operator_id": "usr-ops-02",
-        "shipment_id": "shp-ner-04",
+        "shipment_id": "4",
         "origin_name": "Guwahati Central Strategic Logistics Terminal",
         "origin_lat": 26.1445,
         "origin_lon": 91.7362,
@@ -685,7 +701,7 @@ TRIPS_DATA = [
 ROUTES_DATA = [
     {
         "id": "route-ner-01",
-        "shipment_id": "shp-ner-01",
+        "shipment_id": "1",
         "trip_id": "trip-ner-01",
         "route_type": "RECOMMENDED_SAFEST",
         "total_distance_km": 310.5,
@@ -700,7 +716,7 @@ ROUTES_DATA = [
     },
     {
         "id": "route-ner-02",
-        "shipment_id": "shp-ner-01",
+        "shipment_id": "1",
         "trip_id": "trip-ner-01",
         "route_type": "FASTEST",
         "total_distance_km": 285.0,
@@ -715,7 +731,7 @@ ROUTES_DATA = [
     },
     {
         "id": "route-ner-03",
-        "shipment_id": "shp-ner-02",
+        "shipment_id": "2",
         "trip_id": "trip-ner-02",
         "route_type": "PRIORITY_LIFELINE",
         "total_distance_km": 65.0,
@@ -729,7 +745,7 @@ ROUTES_DATA = [
     },
     {
         "id": "route-ner-04",
-        "shipment_id": "shp-ner-04",
+        "shipment_id": "4",
         "trip_id": "trip-ner-04",
         "route_type": "FASTEST",
         "total_distance_km": 178.0,
@@ -870,7 +886,7 @@ PREDICTIONS_DATA = [
         "id": "pred-ner-02",
         "prediction_type": "DELAY_MINUTES",
         "target_entity_type": "SHIPMENT",
-        "target_entity_id": "shp-ner-01",
+        "target_entity_id": "1",
         "predicted_value": json.dumps({
             "delay_minutes": 140,
             "baseline_eta_min": 360,
@@ -907,7 +923,7 @@ ALERTS_DATA = [
         "severity": "CRITICAL",
         "incident_id": "inc-snp-01",
         "trip_id": "trip-ner-01",
-        "shipment_id": "shp-ner-01",
+        "shipment_id": "1",
         "user_id": "usr-ops-02",
         "location_name": "NH-06 km 42, Sonapur Tunnel",
         "is_read": False
@@ -943,7 +959,7 @@ ALERTS_DATA = [
         "severity": "WARNING",
         "incident_id": "inc-kzr-04",
         "trip_id": "trip-ner-04",
-        "shipment_id": "shp-ner-04",
+        "shipment_id": "4",
         "user_id": "usr-gov-03",
         "location_name": "NH-27, Kaziranga National Park Stretch",
         "is_read": False
@@ -1095,33 +1111,55 @@ def seed_shipments(cursor):
     """Seed essential cargo shipments idempotently."""
     print("Seeding Table 10/17: shipments...")
     for s in SHIPMENTS_DATA:
-        cursor.execute("SELECT 1 FROM shipments WHERE id = ? OR shipment_number = ?", (s["id"], s["shipment_number"]))
+        sid = str(s["id"])
+        trk = s.get("tracking_number") or s.get("shipment_number") or f"SHP-2026-{sid}"
+        title = s.get("title") or "Emergency Relief Consignment"
+        cargo = s.get("cargo_type") or s.get("goods_type") or "General Supplies"
+        weight = float(s.get("weight_kg") if s.get("weight_kg") is not None else 0.0)
+        origin = s.get("origin_address") or s.get("source_name") or "Guwahati Hub"
+        dest = s.get("destination_address") or s.get("dest_name") or "Silchar Forward Depot"
+        raw_veh = s.get("assigned_vehicle_id") or s.get("vehicle_id")
+        if raw_veh == 1 or raw_veh == "1": veh = "veh-ner-01"
+        elif raw_veh == 2 or raw_veh == "2": veh = "veh-ner-02"
+        elif raw_veh == 3 or raw_veh == "3": veh = "veh-ner-03"
+        elif raw_veh == 4 or raw_veh == "4": veh = "veh-ner-04"
+        elif isinstance(raw_veh, str) and raw_veh.startswith("veh-"): veh = raw_veh
+        else: veh = None
+        status = s.get("status") or "IN_TRANSIT"
+        prio = s.get("cargo_priority") or "NORMAL"
+        is_cc = 1 if s.get("is_cold_chain") else 0
+        cur_t = s.get("current_temp_c")
+        t_stat = s.get("temp_status")
+
+        cursor.execute("SELECT 1 FROM shipments WHERE id = ? OR tracking_number = ? OR shipment_number = ?", (sid, trk, trk))
         if not cursor.fetchone():
             cursor.execute(
-                """INSERT INTO shipments (id, shipment_number, goods_type, cargo_priority, source_name, source_lat, source_lon, dest_name, dest_lat, dest_lon, vehicle_id, trip_id, status, estimated_arrival, delay_minutes, risk_score)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (s["id"], s["shipment_number"], s["goods_type"], s["cargo_priority"], s["source_name"], s["source_lat"], s["source_lon"], s["dest_name"], s["dest_lat"], s["dest_lon"], s["vehicle_id"], s["trip_id"], s["status"], s["estimated_arrival"], s["delay_minutes"], s["risk_score"])
+                """INSERT INTO shipments (id, shipment_number, tracking_number, title, goods_type, cargo_type, cargo_priority, weight_kg, origin_address, source_name, destination_address, dest_name, assigned_vehicle_id, vehicle_id, status, is_cold_chain, current_temp_c, temp_status)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (sid, trk, trk, title, cargo, cargo, prio, weight, origin, origin, dest, dest, veh, veh, status, is_cc, cur_t, t_stat)
             )
 
 def seed_routes(cursor):
     """Seed calculated and alternate routes idempotently."""
     print("Seeding Table 11/17: routes...")
     for r in ROUTES_DATA:
+        shp_id = str(r["shipment_id"]) if r.get("shipment_id") is not None else None
         cursor.execute("SELECT 1 FROM routes WHERE id = ?", (r["id"],))
         if not cursor.fetchone():
             cursor.execute(
                 """INSERT INTO routes (id, shipment_id, trip_id, route_type, total_distance_km, estimated_time_min, composite_risk_score, route_score, coordinates_geojson, recommendation_reasons)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (r["id"], r["shipment_id"], r["trip_id"], r["route_type"], r["total_distance_km"], r["estimated_time_min"], r["composite_risk_score"], r["route_score"], json.dumps(r["coordinates"]), r["recommendation_reasons"])
+                (r["id"], shp_id, r["trip_id"], r["route_type"], r["total_distance_km"], r["estimated_time_min"], r["composite_risk_score"], r["route_score"], json.dumps(r["coordinates"]), r["recommendation_reasons"])
             )
 
 def link_trips_to_shipments_and_routes(cursor):
     """Update trips with circular shipment_id and active_route_id after both parent entities exist."""
     print("Linking trips to shipments and routes...")
     for t in TRIPS_DATA:
+        shp_id = str(t["shipment_id"]) if t.get("shipment_id") is not None else None
         cursor.execute(
             """UPDATE trips SET shipment_id = ?, active_route_id = ? WHERE id = ?""",
-            (t["shipment_id"], t["active_route_id"], t["id"])
+            (shp_id, t["active_route_id"], t["id"])
         )
 
 def seed_route_segment_mappings(cursor):
@@ -1175,12 +1213,14 @@ def seed_alerts(cursor):
     """Seed operational notifications idempotently."""
     print("Seeding Table 16/17: alerts...")
     for a in ALERTS_DATA:
+        shp_id = str(a["shipment_id"]) if a.get("shipment_id") is not None else None
+        if shp_id == "shp-ner-01": shp_id = "1"
         cursor.execute("SELECT 1 FROM alerts WHERE id = ?", (a["id"],))
         if not cursor.fetchone():
             cursor.execute(
                 """INSERT INTO alerts (id, title, message, severity, incident_id, trip_id, shipment_id, user_id, location_name, is_read)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (a["id"], a["title"], a["message"], a["severity"], a["incident_id"], a["trip_id"], a["shipment_id"], a["user_id"], a["location_name"], 1 if a["is_read"] else 0)
+                (a["id"], a["title"], a["message"], a["severity"], a["incident_id"], a["trip_id"], shp_id, a["user_id"], a["location_name"], 1 if a["is_read"] else 0)
             )
 
 def seed_audit_logs(cursor):

@@ -3,7 +3,8 @@ Alert and Notification Service.
 Handles operational alert dispatch, deduplication, and acknowledgement workflows.
 """
 
-from typing import Any, Dict, List, Optional
+import uuid
+from typing import Any, Dict, List, Optional, Union
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import ResourceNotFoundError
@@ -47,17 +48,18 @@ class AlertService:
         severity: AlertSeverity = AlertSeverity.INFORMATIONAL,
         category: str = "OPERATIONAL",
         entity_type: Optional[str] = None,
-        entity_id: Optional[int] = None,
+        entity_id: Optional[Union[str, int]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Alert:
         """Create and persist a new operational alert."""
         alert = Alert(
+            id=f"alt-ner-{uuid.uuid4().hex[:8]}",
             title=title,
             message=message,
-            severity=severity.value,
+            severity=severity.value if hasattr(severity, "value") else str(severity),
             category=category,
             entity_type=entity_type,
-            entity_id=entity_id,
+            entity_id=str(entity_id) if entity_id is not None else None,
             is_read=False,
             is_acknowledged=False,
             metadata_json=metadata,

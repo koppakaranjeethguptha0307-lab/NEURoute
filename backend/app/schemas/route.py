@@ -1,7 +1,7 @@
 """Route planning, waypoint, and comparison schemas."""
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 from app.schemas.enums import CargoPriority, RouteOptimizationCriterion
 
@@ -25,17 +25,17 @@ class AlternateRouteRequest(BaseModel):
     current_lng: float = Field(..., ge=-180.0, le=180.0)
     destination_lat: float = Field(..., ge=-90.0, le=90.0)
     destination_lng: float = Field(..., ge=-180.0, le=180.0)
-    blocked_segment_ids: List[int] = []
+    blocked_segment_ids: List[Union[str, int]] = []
     cargo_priority: CargoPriority = CargoPriority.HIGH
 
 
 class RouteSegmentDetail(BaseModel):
-    segment_id: Optional[int] = None
-    name: str
-    highway_number: str
-    length_km: float
-    status: str
-    risk_score: float
+    segment_id: Optional[Union[str, int]] = None
+    name: Optional[str] = "Unnamed Segment"
+    highway_number: Optional[str] = None
+    length_km: float = 0.0
+    status: str = "OPEN"
+    risk_score: float = 0.0
     hazard_description: Optional[str] = None
 
 

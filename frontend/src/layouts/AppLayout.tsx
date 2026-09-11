@@ -19,7 +19,7 @@ export const AppLayout: React.FC = () => {
         <main
           id="main-content"
           role="main"
-          className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto"
+          className="flex-1 p-3 sm:p-5 md:p-6 max-w-[1600px] w-full mx-auto"
         >
           <Outlet />
         </main>

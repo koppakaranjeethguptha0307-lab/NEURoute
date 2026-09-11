@@ -34,41 +34,67 @@ class AuthService:
         self.db = db
         self.user_repo = user_repo or UserRepository(db)
 
-    def authenticate_user(self, username_or_email: str, plain_password: str) -> User:
-        """Authenticate user credentials against stored bcrypt hash."""
+    def authenticate_user(self, username_or_email: str, plain_password: str, requested_role: Optional[str] = None) -> User:
+        """Authenticate user credentials against stored bcrypt hash and verify role."""
         user = self.user_repo.get_by_username_or_email(username_or_email)
         if not user:
             logger.warning(f"Authentication failed: User '{username_or_email}' not found")
-            raise AuthenticationError("Invalid username/email or password")
+            raise AuthenticationError("Invalid email or password")
 
         if not user.is_active:
             logger.warning(f"Authentication failed: User '{username_or_email}' account is deactivated")
-            raise AuthenticationError("User account is inactive. Please contact administrator.")
+            raise AuthorizationError("User account is inactive. Please contact administrator.")
 
         if not verify_password(plain_password, user.hashed_password):
             logger.warning(f"Authentication failed: Invalid password for user '{username_or_email}'")
-            raise AuthenticationError("Invalid username/email or password")
+            raise AuthenticationError("Invalid email or password")
+
+        if requested_role:
+            actual_role = (
+                user.role.name
+                if hasattr(user.role, "name")
+                else (user.role if isinstance(user.role, str) else str(user.role))
+            )
+            # Normalize strings for comparison (e.g. FIELD OFFICER vs FIELD_OFFICER)
+            norm_requested = str(requested_role).upper().replace(" ", "_")
+            norm_actual = str(actual_role).upper().replace(" ", "_")
+            if norm_requested != norm_actual:
+                logger.warning(
+                    f"Authentication failed: User '{username_or_email}' role mismatch (requested {norm_requested}, actual {norm_actual})"
+                )
+                raise AuthorizationError(f"Selected role '{requested_role}' does not match user's assigned role.")
 
         return user
 
     def create_user_token(self, user: User) -> TokenResponse:
         """Generate JWT access token response for authenticated user."""
-        role_name = user.role.name if user.role else UserRole.GENERAL_VIEWER.value
+        role_name = user.role.name if user.role else (user.role if isinstance(user.role, str) else UserRole.FIELD_OFFICER.value)
         token_str = create_access_token(
-            subject=user.id,
-            role=role_name,
+            subject=str(user.id),
+            role=str(role_name),
             email=user.email,
             full_name=user.full_name,
         )
 
+        user_dict = {
+            "id": str(user.id),
+            "name": user.full_name or user.username or user.email,
+            "email": user.email,
+            "role": role_name,
+            "hubLocation": "Shillong Regional Command (Meghalaya)" if "ADMIN" in str(role_name) else "Guwahati Central Hub (Assam)",
+            "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+        }
+
         return TokenResponse(
             access_token=token_str,
+            token=token_str,
             token_type="bearer",
             expires_in=1440 * 60,
-            user_id=user.id,
-            username=user.username,
-            role=UserRole(role_name),
+            user_id=str(user.id),
+            username=user.username or user.email,
+            role=role_name,
             full_name=user.full_name,
+            user=user_dict,
         )
 
     def get_current_user_from_token(self, token: str) -> UserContext:
@@ -78,28 +104,30 @@ class AuthService:
         if not user_id:
             raise AuthenticationError("Token contains no valid user subject")
 
-        try:
-            uid = int(user_id)
-        except ValueError:
-            raise AuthenticationError("Invalid user identifier in token")
+        user = self.user_repo.get_by_id(user_id)
+        if not user:
+            try:
+                user = self.user_repo.get_by_id(int(user_id))
+            except (ValueError, TypeError):
+                pass
 
-        user = self.user_repo.get_by_id(uid)
         if not user:
             raise AuthenticationError("User referenced in token no longer exists")
 
         if not user.is_active:
             raise AuthenticationError("User account is deactivated")
 
-        role_name = user.role.name if user.role else UserRole.GENERAL_VIEWER.value
+        role_name = user.role.name if user.role and hasattr(user.role, "name") else (user.role if isinstance(user.role, str) else UserRole.FIELD_OFFICER.value)
 
         return UserContext(
-            id=user.id,
-            username=user.username,
+            id=str(user.id),
+            username=user.username or user.email,
             email=user.email,
-            role=UserRole(role_name),
+            role=role_name,
             is_active=user.is_active,
             full_name=user.full_name,
         )
+
 
     def register_user(self, user_in: UserCreate) -> User:
         """Register a new user account with duplicate checks and role assignment."""

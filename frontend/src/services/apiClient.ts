@@ -61,7 +61,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api/v1';
   }
 
   public get isDemoMode(): boolean {
@@ -129,9 +129,9 @@ class ApiClient {
     // --- DEMO / MOCK ENDPOINT EXECUTION ---
     const registryKey = `${method}:${cleanEndpoint.split('?')[0]}`;
     const mockHandler = mockRegistry.get(registryKey);
-    const isAiRoute = cleanEndpoint.startsWith('/ai/');
 
-    if (this.isDemoMode || (mockHandler && !isAiRoute)) {
+    // Primary: Real Backend API. Mock execution executes ONLY when explicitly in demo mode.
+    if (this.isDemoMode) {
       if (mockHandler) {
         // Simulate minor network jitter (150ms - 350ms) for realistic UI loading states
         await new Promise((resolve) => setTimeout(resolve, Math.random() * 200 + 150));
@@ -197,7 +197,7 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        if (response.status === 404) {
+        if ((response.status === 404 || response.status >= 500) && this.isDemoMode) {
           const registryKey = `${method}:${cleanEndpoint.split('?')[0]}`;
           const mockHandler = mockRegistry.get(registryKey);
           if (mockHandler) {
@@ -224,26 +224,28 @@ class ApiClient {
 
       return (await response.json()) as T;
     } catch (err: unknown) {
+      if (this.isDemoMode) {
+        const registryKey = `${method}:${cleanEndpoint.split('?')[0]}`;
+        const mockHandler = mockRegistry.get(registryKey);
+        if (mockHandler) {
+          const queryParams: Record<string, string> = {};
+          if (options.params) {
+            Object.entries(options.params).forEach(([k, v]) => {
+              if (v !== undefined) queryParams[k] = String(v);
+            });
+          }
+          return (await mockHandler({
+            query: queryParams,
+            body: options.body,
+            params: {},
+          })) as T;
+        }
+      }
       if (err instanceof ApiError) {
         throw err;
       }
       if (err instanceof DOMException && err.name === 'AbortError') {
         throw new ApiError('Request was aborted', 0);
-      }
-      const registryKey = `${method}:${cleanEndpoint.split('?')[0]}`;
-      const mockHandler = mockRegistry.get(registryKey);
-      if (mockHandler) {
-        const queryParams: Record<string, string> = {};
-        if (options.params) {
-          Object.entries(options.params).forEach(([k, v]) => {
-            if (v !== undefined) queryParams[k] = String(v);
-          });
-        }
-        return (await mockHandler({
-          query: queryParams,
-          body: options.body,
-          params: {},
-        })) as T;
       }
       throw new ApiError(
         err instanceof Error ? err.message : 'Network error occurred. Check connection.',

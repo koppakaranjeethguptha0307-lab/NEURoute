@@ -7,18 +7,21 @@ from sqlalchemy import Column, DateTime, Float, Integer, String, Text
 from app.database.base import Base
 
 
+import uuid
+
 class FieldReport(Base):
     __tablename__ = "field_reports"
 
-    id = Column(Integer, primary_key=True, index=True)
-    client_report_uuid = Column(String(100), unique=True, nullable=False, index=True)
-    title = Column(String(200), nullable=False)
+    id = Column(String(50), primary_key=True, index=True, default=lambda: f"fr-{uuid.uuid4().hex[:8]}")
+    client_uuid = Column(String(100), nullable=True)
+    client_report_uuid = Column(String(100), unique=True, nullable=True, index=True)
+    title = Column(String(200), nullable=True)
     category = Column(String(50), nullable=False)
     severity = Column(String(20), nullable=False)
     description = Column(Text, nullable=True)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    captured_at = Column(DateTime, nullable=False)
+    captured_at = Column(DateTime, nullable=True)
     synced_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     photos_raw = Column(Text, nullable=True)
     status = Column(String(20), default="SYNCED", nullable=False)

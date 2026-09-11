@@ -7,10 +7,12 @@ from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, Tex
 from app.database.base import Base
 
 
+import uuid
+
 class Route(Base):
     __tablename__ = "routes"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(50), primary_key=True, index=True, default=lambda: f"route-{uuid.uuid4().hex[:8]}")
     origin_lat = Column(Float, nullable=False)
     origin_lng = Column(Float, nullable=False)
     destination_lat = Column(Float, nullable=False)
@@ -43,6 +45,6 @@ class RouteSegmentMapping(Base):
     __tablename__ = "route_segment_mappings"
 
     id = Column(Integer, primary_key=True, index=True)
-    route_id = Column(Integer, ForeignKey("routes.id"), nullable=False)
-    segment_id = Column(Integer, ForeignKey("road_segments.id"), nullable=False)
+    route_id = Column(String(50), ForeignKey("routes.id"), nullable=False)
+    segment_id = Column(String(50), ForeignKey("road_segments.id"), nullable=False)
     sequence_order = Column(Integer, default=0, nullable=False)

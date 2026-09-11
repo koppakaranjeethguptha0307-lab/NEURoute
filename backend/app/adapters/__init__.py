@@ -11,6 +11,7 @@ from app.adapters.weather import (
     WeatherProviderProtocol,
     MockWeatherAdapter,
     OpenMeteoWeatherAdapter,
+    WeatherSource,
 )
 from app.adapters.ai import (
     ClassifiedIncidentResult,
@@ -22,6 +23,28 @@ from app.adapters.ai import (
     AIIntegrationAdapter,
     MockAIAdapter,
 )
+from app.adapters.gps import (
+    GPSProviderProtocol,
+    GPSReading,
+    GPSSource,
+    SimulatorGPSProvider,
+    LiveApiGPSProvider,
+)
+from app.adapters.cold_chain import (
+    ColdChainProviderProtocol,
+    ColdChainReading,
+    ColdChainSource,
+    ColdChainStatus,
+    SimulatorColdChainProvider,
+    LiveApiColdChainProvider,
+)
+from app.adapters.government import (
+    GovernmentAdvisory,
+    GovernmentIntegrationProtocol,
+    GovernmentSource,
+    SimulatorGovernmentAdapter,
+    LiveGovernmentAdapter,
+)
 
 __all__ = [
     "RouteGeometryResult",
@@ -32,6 +55,7 @@ __all__ = [
     "WeatherProviderProtocol",
     "MockWeatherAdapter",
     "OpenMeteoWeatherAdapter",
+    "WeatherSource",
     "ClassifiedIncidentResult",
     "SegmentRiskResult",
     "EstimatedDelayResult",
@@ -40,4 +64,20 @@ __all__ = [
     "DelayEstimatorProtocol",
     "AIIntegrationAdapter",
     "MockAIAdapter",
+    "GPSProviderProtocol",
+    "GPSReading",
+    "GPSSource",
+    "SimulatorGPSProvider",
+    "LiveApiGPSProvider",
+    "ColdChainProviderProtocol",
+    "ColdChainReading",
+    "ColdChainSource",
+    "ColdChainStatus",
+    "SimulatorColdChainProvider",
+    "LiveApiColdChainProvider",
+    "GovernmentAdvisory",
+    "GovernmentIntegrationProtocol",
+    "GovernmentSource",
+    "SimulatorGovernmentAdapter",
+    "LiveGovernmentAdapter",
 ]

@@ -9,7 +9,7 @@ Supports both Protocol objects and real AI service instances.
 import inspect
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 # Ensure project root containing ai/ package is in sys.path
 project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
@@ -150,7 +150,7 @@ class AIIntegrationAdapter(
 
     async def predict_segment_risk(
         self,
-        segment_id: int,
+        segment_id: Union[str, int],
         rainfall_mm: float,
         active_incidents_count: int,
         historical_failure_rate: float,
