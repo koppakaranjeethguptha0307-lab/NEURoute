@@ -47,7 +47,15 @@ class Settings(BaseSettings):
 
     # CORS Configuration
     CORS_ORIGINS: Union[List[str], str] = Field(
-        default=["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:8000"],
+        default=[
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:8000",
+            "https://neuroute.vercel.app",
+            "https://neuroute-backend.onrender.com",
+            "*"
+        ],
         description="Allowed CORS origins"
     )
 

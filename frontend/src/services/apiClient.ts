@@ -1,5 +1,7 @@
 // Centralized API Client with JWT injection, 401 interception, error normalization, and Demo Mode Mock Dispatcher
 
+import { getApiBaseUrl } from '@/utils/apiConfig';
+
 const AUTH_TOKEN_KEY = 'neuroute_auth_token';
 
 export interface ApiErrorResponse {
@@ -61,7 +63,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api/v1';
+    this.baseURL = getApiBaseUrl();
   }
 
   public get isDemoMode(): boolean {

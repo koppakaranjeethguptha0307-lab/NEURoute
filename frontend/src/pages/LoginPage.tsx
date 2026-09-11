@@ -18,9 +18,13 @@ import {
   Phone,
   FileText,
   X,
+  Copy,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
+import { getApiBaseUrl } from '@/utils/apiConfig';
 
 type RoleCardInfo = {
   id: UserRole;
@@ -61,6 +65,40 @@ const ROLES: RoleCardInfo[] = [
   },
 ];
 
+type DemoCredential = {
+  role: UserRole;
+  title: string;
+  email: string;
+  password: string;
+};
+
+const DEMO_CREDENTIALS: DemoCredential[] = [
+  {
+    role: 'ADMIN',
+    title: 'ADMIN',
+    email: 'admin@neuroute.in',
+    password: 'password123',
+  },
+  {
+    role: 'FIELD_OFFICER',
+    title: 'FIELD OFFICER',
+    email: 'field@neuroute.in',
+    password: 'password123',
+  },
+  {
+    role: 'DRIVER',
+    title: 'DRIVER',
+    email: 'driver@neuroute.in',
+    password: 'password123',
+  },
+  {
+    role: 'LOGISTICS_PLANNER',
+    title: 'LOGISTICS PLANNER',
+    email: 'planner@neuroute.in',
+    password: 'password123',
+  },
+];
+
 const getRoleDestination = (role?: string) => {
   switch (role) {
     case 'FIELD_OFFICER':
@@ -86,6 +124,21 @@ export const LoginPage: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Copy helper state
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+
+  const handleQuickFill = (demo: DemoCredential) => {
+    setSelectedRole(demo.role);
+    setEmail(demo.email);
+    setPassword(demo.password);
+  };
 
   // Request Access Modal state
   const [showRequestAccess, setShowRequestAccess] = useState(false);
@@ -178,7 +231,7 @@ export const LoginPage: React.FC = () => {
     setReqError(null);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+      const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/auth/request-access`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -394,7 +447,81 @@ export const LoginPage: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-slate-800 pt-6">
+        {/* Demo Credentials Section */}
+        <div className="mt-6 border-t border-slate-800 pt-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              Demo Credentials
+            </h3>
+            <span className="text-[10px] text-slate-500 font-mono">Pre-configured Accounts</span>
+          </div>
+
+          <div className="space-y-2.5">
+            {DEMO_CREDENTIALS.map((demo) => (
+              <div
+                key={demo.role}
+                className={`rounded-lg border p-2.5 transition-colors ${
+                  selectedRole === demo.role
+                    ? 'border-brand-500/50 bg-brand-500/10'
+                    : 'border-slate-800/80 bg-slate-950/50 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-brand-300 tracking-wider">
+                    {demo.title}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickFill(demo)}
+                    className="text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded transition-colors"
+                  >
+                    Quick Fill
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                  <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
+                    <span className="text-slate-400 select-all overflow-hidden text-ellipsis mr-1">
+                      Email: <strong className="text-slate-200">{demo.email}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(demo.email, `${demo.role}-email`)}
+                      className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
+                      title="Copy Email"
+                    >
+                      {copiedKey === `${demo.role}-email` ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
+                    <span className="text-slate-400 select-all mr-1">
+                      Password: <strong className="text-slate-200">{demo.password}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(demo.password, `${demo.role}-pass`)}
+                      className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
+                      title="Copy Password"
+                    >
+                      {copiedKey === `${demo.role}-pass` ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-6 text-center border-t border-slate-800 pt-5">
           <p className="text-sm text-slate-400">
             Don't have an operational account?{' '}
             <button

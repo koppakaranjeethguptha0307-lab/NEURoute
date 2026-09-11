@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, LoginCredentials, AuthResponse } from '@/types';
+import { getApiBaseUrl } from '@/utils/apiConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -45,20 +46,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
 
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-      const response = await fetch(`${baseUrl}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(credentials),
-      });
+      const baseUrl = getApiBaseUrl();
+      const endpoint = `${baseUrl}/auth/login`;
+
+      let response: Response;
+      try {
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(credentials),
+        });
+      } catch (networkErr: unknown) {
+        throw new Error('Authentication server is unavailable.');
+      }
 
       if (!response.ok) {
         let errorMessage = 'Authentication failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.detail || errorMessage;
-        } catch {
-          // Ignore json parse error
+        if (response.status === 404) {
+          errorMessage = `Authentication endpoint not found (${endpoint}). Please verify backend server configuration.`;
+        } else if (response.status === 401) {
+          errorMessage = 'Invalid email or password.';
+        } else if (response.status === 403) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || 'Access denied for selected role.';
+          } catch {
+            errorMessage = 'Access denied for selected role.';
+          }
+        } else if (response.status >= 500) {
+          errorMessage = 'Authentication server is unavailable.';
+        } else {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorMessage;
+          } catch {
+            // Ignore json parse error
+          }
         }
         throw new Error(errorMessage);
       }
