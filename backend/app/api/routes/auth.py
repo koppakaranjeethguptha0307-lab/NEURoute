@@ -7,10 +7,13 @@ Team: Nexara
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.exceptions import AuthenticationError, AuthorizationError
+from app.core.config import settings
+from app.core.exceptions import AuthenticationError, AuthorizationError, ConflictError
 from app.dependencies import get_auth_service, get_current_active_user, get_db
 from app.models.access_request import AccessRequest
-from app.schemas.auth import AccessRequestCreate, AccessRequestResponse, LoginRequest, TokenResponse, UserContext
+from app.schemas.auth import AccessRequestCreate, AccessRequestResponse, LoginRequest, RegisterRequest, TokenResponse, UserContext
+from app.schemas.enums import UserRole
+from app.schemas.user import UserCreate, UserResponse
 from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Authentication & Identity"])
@@ -36,6 +39,47 @@ def login(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except AuthorizationError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED, summary="Create a new operational user account")
+def register(
+    req: RegisterRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+) -> UserResponse:
+    """Registers a new user in PostgreSQL with hashed password and role assignment."""
+    if req.confirm_password and req.password != req.confirm_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Passwords do not match",
+        )
+
+    # Security check for ADMIN registration
+    if req.role == UserRole.ADMIN:
+        expected_key = getattr(settings, "ADMIN_REGISTRATION_KEY", "neuroute-admin-secret-2026")
+        if not req.admin_secret_key or req.admin_secret_key != expected_key:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Public ADMIN account creation requires a valid Administrator Authorization Key.",
+            )
+
+    user_create = UserCreate(
+        username=req.email,
+        email=req.email,
+        password=req.password,
+        full_name=req.full_name,
+        role=req.role,
+        is_active=True,
+        phone_number=req.phone_number,
+        department=req.organization,
+    )
+
+    try:
+        new_user = auth_service.register_user(user_create)
+        return new_user
+    except ConflictError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

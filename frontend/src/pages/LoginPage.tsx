@@ -21,6 +21,8 @@ import {
   Copy,
   Check,
   Sparkles,
+  UserPlus,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
@@ -118,12 +120,29 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login, isAuthenticated, user } = useAuth();
 
+  // Mode: 'login' | 'register'
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+
+  // Login form state
   const [selectedRole, setSelectedRole] = useState<UserRole>('ADMIN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Registration form state
+  const [regFullName, setRegFullName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [regOrg, setRegOrg] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [regRole, setRegRole] = useState<UserRole>('FIELD_OFFICER');
+  const [regAdminSecretKey, setRegAdminSecretKey] = useState('');
+  const [regSubmitting, setRegSubmitting] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
+  const [regSuccessMsg, setRegSuccessMsg] = useState<string | null>(null);
 
   // Copy helper state
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -140,36 +159,26 @@ export const LoginPage: React.FC = () => {
     setPassword(demo.password);
   };
 
-  // Request Access Modal state
-  const [showRequestAccess, setShowRequestAccess] = useState(false);
-  const [reqFullName, setReqFullName] = useState('');
-  const [reqEmail, setReqEmail] = useState('');
-  const [reqOrg, setReqOrg] = useState('');
-  const [reqRole, setReqRole] = useState<'FIELD_OFFICER' | 'DRIVER' | 'LOGISTICS_PLANNER'>('FIELD_OFFICER');
-  const [reqPhone, setReqPhone] = useState('');
-  const [reqReason, setReqReason] = useState('');
-  const [reqSubmitting, setReqSubmitting] = useState(false);
-  const [reqSuccess, setReqSuccess] = useState(false);
-  const [reqError, setReqError] = useState<string | null>(null);
-
-  // Auto demo fill based on selected role
+  // Auto demo fill based on selected role when in login mode
   useEffect(() => {
-    switch (selectedRole) {
-      case 'ADMIN':
-        setEmail('admin@neuroute.in');
-        break;
-      case 'FIELD_OFFICER':
-        setEmail('field@neuroute.in');
-        break;
-      case 'DRIVER':
-        setEmail('driver@neuroute.in');
-        break;
-      case 'LOGISTICS_PLANNER':
-        setEmail('planner@neuroute.in');
-        break;
+    if (authMode === 'login' && !regSuccessMsg) {
+      switch (selectedRole) {
+        case 'ADMIN':
+          setEmail('admin@neuroute.in');
+          break;
+        case 'FIELD_OFFICER':
+          setEmail('field@neuroute.in');
+          break;
+        case 'DRIVER':
+          setEmail('driver@neuroute.in');
+          break;
+        case 'LOGISTICS_PLANNER':
+          setEmail('planner@neuroute.in');
+          break;
+      }
+      setPassword('password123');
     }
-    setPassword('password123'); // Demo password
-  }, [selectedRole]);
+  }, [selectedRole, authMode, regSuccessMsg]);
 
   // If redirected from a protected route, capture return destination
   const fromLocation = (location.state as { from?: { pathname: string } })?.from?.pathname;
@@ -223,38 +232,75 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleRequestAccessSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reqFullName || !reqEmail || !reqOrg) return;
+    setRegError(null);
+    setRegSuccessMsg(null);
 
-    setReqSubmitting(true);
-    setReqError(null);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regFullName.trim()) {
+      setRegError('Full Name is required');
+      return;
+    }
+    if (!regEmail.trim() || !emailRegex.test(regEmail.trim())) {
+      setRegError('Valid official email address is required');
+      return;
+    }
+    if (!regPassword || regPassword.length < 6) {
+      setRegError('Password must be at least 6 characters');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setRegError('Passwords do not match');
+      return;
+    }
+    if (regRole === 'ADMIN' && !regAdminSecretKey.trim()) {
+      setRegError('Administrator Secret Key is required for ADMIN account creation');
+      return;
+    }
+
+    setRegSubmitting(true);
 
     try {
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/auth/request-access`, {
+      const response = await fetch(`${baseUrl}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          full_name: reqFullName,
-          email: reqEmail,
-          organization: reqOrg,
-          requested_role: reqRole,
-          phone_number: reqPhone,
-          reason: reqReason,
+          full_name: regFullName.trim(),
+          email: regEmail.trim(),
+          password: regPassword,
+          confirm_password: regConfirmPassword,
+          organization: regOrg.trim() || undefined,
+          phone_number: regPhone.trim() || undefined,
+          role: regRole,
+          admin_secret_key: regRole === 'ADMIN' ? regAdminSecretKey.trim() : undefined,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to submit access request');
+        let errMessage = 'Registration failed';
+        try {
+          const data = await response.json();
+          errMessage = data.detail || errMessage;
+        } catch {
+          // Fallback message
+        }
+        throw new Error(errMessage);
       }
 
-      setReqSuccess(true);
+      // Successful registration
+      setRegSuccessMsg('Account created successfully! You can now sign in with your email and password.');
+      // Auto-fill login credentials
+      setEmail(regEmail.trim());
+      setPassword(regPassword);
+      setSelectedRole(regRole);
+      // Switch view back to Sign In
+      setAuthMode('login');
     } catch (err: any) {
-      setReqError(err.message || 'Error submitting access request');
+      setRegError(err.message || 'Error creating account');
     } finally {
-      setReqSubmitting(false);
+      setRegSubmitting(false);
     }
   };
 
@@ -294,24 +340,32 @@ export const LoginPage: React.FC = () => {
           <div className="grid grid-cols-2 gap-3">
             {ROLES.map((role) => {
               const Icon = role.icon;
+              const isSelected = authMode === 'login' ? selectedRole === role.id : regRole === role.id;
               return (
                 <button
                   key={role.id}
-                  onClick={() => setSelectedRole(role.id)}
+                  type="button"
+                  onClick={() => {
+                    if (authMode === 'login') {
+                      setSelectedRole(role.id);
+                    } else {
+                      setRegRole(role.id);
+                    }
+                  }}
                   className={`group flex flex-col items-start rounded-xl border p-4 text-left transition-all ${
-                    selectedRole === role.id
+                    isSelected
                       ? 'border-brand-500 bg-brand-500/10 shadow-lg shadow-brand-500/5'
                       : 'border-slate-800 bg-slate-900 hover:border-slate-700 hover:bg-slate-800'
                   }`}
                 >
                   <Icon
                     className={`h-6 w-6 mb-3 ${
-                      selectedRole === role.id ? 'text-brand-400' : 'text-slate-500 group-hover:text-slate-400'
+                      isSelected ? 'text-brand-400' : 'text-slate-500 group-hover:text-slate-400'
                     }`}
                   />
                   <span
                     className={`text-xs font-bold tracking-wider ${
-                      selectedRole === role.id ? 'text-white' : 'text-slate-300'
+                      isSelected ? 'text-white' : 'text-slate-300'
                     }`}
                   >
                     {role.title}
@@ -324,349 +378,438 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Right side: Login Form */}
+      {/* Right side: Login / Registration Container */}
       <div className="flex w-full flex-col justify-center p-8 sm:p-12 lg:w-1/2">
-        <div className="lg:hidden mb-8 text-center">
+        <div className="lg:hidden mb-6 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg">
             <Navigation2 className="h-6 w-6 transform rotate-45" />
           </div>
           <h1 className="mt-4 text-xl font-bold tracking-tight text-white">NEURoute LOGISTICS AI</h1>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white">Sign in to Command Center</h2>
-          <p className="mt-2 text-sm text-slate-400">{ROLES.find((r) => r.id === selectedRole)?.description}</p>
+        {/* Auth Mode Toggle Header */}
+        <div className="mb-6 flex rounded-xl bg-slate-950 p-1 border border-slate-800">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('login');
+              setErrors({});
+            }}
+            className={`flex-1 rounded-lg py-2.5 text-xs font-bold transition-all ${
+              authMode === 'login'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode('register');
+              setRegError(null);
+            }}
+            className={`flex-1 rounded-lg py-2.5 text-xs font-bold transition-all ${
+              authMode === 'register'
+                ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Create New Account
+          </button>
         </div>
 
-        {errors.general && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-400">
-            <AlertCircle className="h-5 w-5 shrink-0" />
-            <span>{errors.general}</span>
+        {regSuccessMsg && (
+          <div className="mb-6 flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-400">
+            <CheckCircle className="h-5 w-5 shrink-0" />
+            <span>{regSuccessMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
-          {/* Mobile Role Selection */}
-          <div className="lg:hidden">
-            <label className="block text-xs font-semibold text-slate-300 mb-2">Operational Role</label>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value as UserRole)}
-              className="w-full rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            >
-              {ROLES.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.title} - {role.subtitle}
-                </option>
-              ))}
-            </select>
-          </div>
-
+        {authMode === 'login' ? (
+          /* ================= SIGN IN FORM ================= */
           <div>
-            <label className="block text-xs font-semibold text-slate-300">Operational Email</label>
-            <div className="relative mt-1.5">
-              <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="officer@neuroute.in"
-                className={`w-full rounded-lg border bg-slate-950/70 pl-10 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 transition-colors ${
-                  errors.email
-                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-                    : 'border-slate-800 focus:border-brand-500 focus:ring-brand-500'
-                }`}
-              />
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-white">Sign in to Command Center</h2>
+              <p className="mt-1 text-xs text-slate-400">{ROLES.find((r) => r.id === selectedRole)?.description}</p>
             </div>
-            {errors.email && (
-              <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {errors.email}
-              </p>
+
+            {errors.general && (
+              <div className="mb-6 flex items-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-400">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <span>{errors.general}</span>
+              </div>
             )}
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-slate-300">Password</label>
-            </div>
-            <div className="relative mt-1.5">
-              <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className={`w-full rounded-lg border bg-slate-950/70 pl-10 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 transition-colors ${
-                  errors.password
-                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
-                    : 'border-slate-800 focus:border-brand-500 focus:ring-brand-500'
-                }`}
-              />
-            </div>
-            {errors.password && (
-              <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1">
-                <AlertCircle className="h-3.5 w-3.5" />
-                {errors.password}
-              </p>
-            )}
-          </div>
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              {/* Mobile Role Selection */}
+              <div className="lg:hidden">
+                <label className="block text-xs font-semibold text-slate-300 mb-2">Operational Role</label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950/70 p-3 text-sm text-slate-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  {ROLES.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.title} - {role.subtitle}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="flex items-center justify-between pt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-1 focus:ring-brand-500"
-              />
-              <span className="text-sm text-slate-300">Remember session</span>
-            </label>
-            <span className="text-xs text-emerald-400 flex items-center gap-1">
-              <ShieldCheck className="h-4 w-4" />
-              Secured
-            </span>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                <span>Authenticating...</span>
-              </>
-            ) : (
-              <>
-                <span>Sign In as {ROLES.find((r) => r.id === selectedRole)?.title}</span>
-                <ArrowRight className="h-5 w-5" />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Demo Credentials Section */}
-        <div className="mt-6 border-t border-slate-800 pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-amber-400" />
-              Demo Credentials
-            </h3>
-            <span className="text-[10px] text-slate-500 font-mono">Pre-configured Accounts</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {DEMO_CREDENTIALS.map((demo) => (
-              <div
-                key={demo.role}
-                className={`rounded-lg border p-2.5 transition-colors ${
-                  selectedRole === demo.role
-                    ? 'border-brand-500/50 bg-brand-500/10'
-                    : 'border-slate-800/80 bg-slate-950/50 hover:border-slate-700'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-bold text-brand-300 tracking-wider">
-                    {demo.title}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickFill(demo)}
-                    className="text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded transition-colors"
-                  >
-                    Quick Fill
-                  </button>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300">Operational Email</label>
+                <div className="relative mt-1.5">
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="officer@neuroute.in"
+                    className={`w-full rounded-lg border bg-slate-950/70 pl-10 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 transition-colors ${
+                      errors.email
+                        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                        : 'border-slate-800 focus:border-brand-500 focus:ring-brand-500'
+                    }`}
+                  />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
-                  <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
-                    <span className="text-slate-400 select-all overflow-hidden text-ellipsis mr-1">
-                      Email: <strong className="text-slate-200">{demo.email}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(demo.email, `${demo.role}-email`)}
-                      className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
-                      title="Copy Email"
-                    >
-                      {copiedKey === `${demo.role}-email` ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </div>
+                {errors.email && (
+                  <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    {errors.email}
+                  </p>
+                )}
+              </div>
 
-                  <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
-                    <span className="text-slate-400 select-all mr-1">
-                      Password: <strong className="text-slate-200">{demo.password}</strong>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(demo.password, `${demo.role}-pass`)}
-                      className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
-                      title="Copy Password"
-                    >
-                      {copiedKey === `${demo.role}-pass` ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      ) : (
-                        <Copy className="h-3.5 w-3.5" />
-                      )}
-                    </button>
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-300">Password</label>
+                </div>
+                <div className="relative mt-1.5">
+                  <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className={`w-full rounded-lg border bg-slate-950/70 pl-10 pr-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 transition-colors ${
+                      errors.password
+                        ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500'
+                        : 'border-slate-800 focus:border-brand-500 focus:ring-brand-500'
+                    }`}
+                  />
+                </div>
+                {errors.password && (
+                  <p className="mt-1.5 text-xs text-rose-400 flex items-center gap-1">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    {errors.password}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-1 focus:ring-brand-500"
+                  />
+                  <span className="text-xs text-slate-300">Remember session</span>
+                </label>
+                <span className="text-xs text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="h-4 w-4" />
+                  Secured
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span>Authenticating...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Sign In as {ROLES.find((r) => r.id === selectedRole)?.title}</span>
+                    <ArrowRight className="h-5 w-5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            {/* Demo Credentials Section */}
+            <div className="mt-6 border-t border-slate-800 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                  Demo Credentials
+                </h3>
+                <span className="text-[10px] text-slate-500 font-mono">Pre-configured Accounts</span>
+              </div>
+
+              <div className="space-y-2">
+                {DEMO_CREDENTIALS.map((demo) => (
+                  <div
+                    key={demo.role}
+                    className={`rounded-lg border p-2 transition-colors ${
+                      selectedRole === demo.role
+                        ? 'border-brand-500/50 bg-brand-500/10'
+                        : 'border-slate-800/80 bg-slate-950/50 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] font-bold text-brand-300 tracking-wider">
+                        {demo.title}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickFill(demo)}
+                        className="text-[10px] font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded transition-colors"
+                      >
+                        Quick Fill
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs font-mono">
+                      <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
+                        <span className="text-slate-400 select-all overflow-hidden text-ellipsis mr-1">
+                          Email: <strong className="text-slate-200">{demo.email}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(demo.email, `${demo.role}-email`)}
+                          className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
+                          title="Copy Email"
+                        >
+                          {copiedKey === `${demo.role}-email` ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between bg-slate-900/90 rounded px-2 py-1 border border-slate-800/60">
+                        <span className="text-slate-400 select-all mr-1">
+                          Password: <strong className="text-slate-200">{demo.password}</strong>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(demo.password, `${demo.role}-pass`)}
+                          className="text-slate-400 hover:text-brand-400 shrink-0 ml-1"
+                          title="Copy Password"
+                        >
+                          {copiedKey === `${demo.role}-pass` ? (
+                            <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-5 text-center border-t border-slate-800 pt-4">
+              <p className="text-xs text-slate-400">
+                Need a new operational account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('register');
+                    setRegError(null);
+                  }}
+                  className="font-semibold text-brand-400 hover:text-brand-300 underline underline-offset-2"
+                >
+                  Create New Account
+                </button>
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* ================= CREATE NEW ACCOUNT FORM ================= */
+          <div>
+            <div className="mb-5">
+              <h2 className="text-2xl font-bold text-white">Create Operational Account</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Register a new account in PostgreSQL for NEURoute Logistics platform.
+              </p>
+            </div>
+
+            {regError && (
+              <div className="mb-4 flex items-center gap-3 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3.5 text-xs text-rose-400">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{regError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="text"
+                    value={regFullName}
+                    onChange={(e) => setRegFullName(e.target.value)}
+                    required
+                    placeholder="e.g. Rajesh Kumar"
+                    className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Official Work Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <input
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    required
+                    placeholder="officer@agency.ner.gov.in"
+                    className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      placeholder="••••••••••••"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Confirm Password</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="password"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      required
+                      placeholder="••••••••••••"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="mt-6 text-center border-t border-slate-800 pt-5">
-          <p className="text-sm text-slate-400">
-            Don't have an operational account?{' '}
-            <button
-              type="button"
-              onClick={() => {
-                setShowRequestAccess(true);
-                setReqSuccess(false);
-                setReqError(null);
-              }}
-              className="font-semibold text-brand-400 hover:text-brand-300 underline underline-offset-2"
-            >
-              Request Access
-            </button>
-          </p>
-        </div>
-
-        {/* Real Backend Request Access Modal */}
-        {showRequestAccess && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl text-white relative">
-              <button
-                onClick={() => setShowRequestAccess(false)}
-                className="absolute right-4 top-4 text-slate-400 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              <h3 className="text-xl font-bold mb-2">Request Platform Access</h3>
-              <p className="text-xs text-slate-400 mb-6">
-                Operational role applications are stored in database and reviewed by system administrators.
-              </p>
-
-              {reqSuccess ? (
-                <div className="space-y-4 text-center py-6">
-                  <CheckCircle className="mx-auto h-12 w-12 text-emerald-400" />
-                  <h4 className="text-lg font-bold text-emerald-400">Access request submitted successfully.</h4>
-                  <p className="text-xs text-slate-300">
-                    Your application status is currently <span className="font-bold text-amber-400">PENDING</span>.
-                    An administrator will review your credentials shortly.
-                  </p>
-                  <button
-                    onClick={() => setShowRequestAccess(false)}
-                    className="w-full rounded-lg bg-brand-600 py-2.5 text-sm font-semibold hover:bg-brand-500"
-                  >
-                    Return to Login
-                  </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Organization / Agency</label>
+                  <div className="relative">
+                    <Building className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                    <input
+                      type="text"
+                      value={regOrg}
+                      onChange={(e) => setRegOrg(e.target.value)}
+                      placeholder="e.g. Assam PWD / SDRF"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    />
+                  </div>
                 </div>
-              ) : (
-                <form onSubmit={handleRequestAccessSubmit} className="space-y-4">
-                  {reqError && (
-                    <div className="flex items-center gap-2 rounded-lg bg-rose-500/10 border border-rose-500/20 p-3 text-xs text-rose-400">
-                      <AlertCircle className="h-4 w-4 shrink-0" />
-                      <span>{reqError}</span>
-                    </div>
-                  )}
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                     <input
                       type="text"
-                      value={reqFullName}
-                      onChange={(e) => setReqFullName(e.target.value)}
-                      required
-                      placeholder="e.g. Rajesh Kumar"
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Official Email</label>
-                    <input
-                      type="email"
-                      value={reqEmail}
-                      onChange={(e) => setReqEmail(e.target.value)}
-                      required
-                      placeholder="officer@agency.ner.gov.in"
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Organization / Department</label>
-                    <input
-                      type="text"
-                      value={reqOrg}
-                      onChange={(e) => setReqOrg(e.target.value)}
-                      required
-                      placeholder="e.g. Assam Disaster Mgmt Authority"
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Requested Operational Role</label>
-                    <select
-                      value={reqRole}
-                      onChange={(e) => setReqRole(e.target.value as any)}
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
-                    >
-                      <option value="FIELD_OFFICER">FIELD OFFICER</option>
-                      <option value="DRIVER">DRIVER</option>
-                      <option value="LOGISTICS_PLANNER">LOGISTICS PLANNER</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Phone Number (Optional)</label>
-                    <input
-                      type="text"
-                      value={reqPhone}
-                      onChange={(e) => setReqPhone(e.target.value)}
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
                       placeholder="+91-9876543210"
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950/70 pl-10 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
+                </div>
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Reason / Department Justification</label>
-                    <textarea
-                      rows={2}
-                      value={reqReason}
-                      onChange={(e) => setReqReason(e.target.value)}
-                      placeholder="Briefly state why access is required for your operations..."
-                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-sm text-slate-100"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Select Operational Role</label>
+                <select
+                  value={regRole}
+                  onChange={(e) => setRegRole(e.target.value as UserRole)}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2.5 text-xs text-slate-100 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                >
+                  <option value="FIELD_OFFICER">FIELD OFFICER — Ground Operations & Evidence</option>
+                  <option value="DRIVER">DRIVER — Transport Operator & Mission Tracking</option>
+                  <option value="LOGISTICS_PLANNER">LOGISTICS PLANNER — AI Route & Shipment Intelligence</option>
+                  <option value="ADMIN">ADMIN — Government / Control Room (Authorization Key Required)</option>
+                </select>
+              </div>
 
-                  <div className="mt-6 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowRequestAccess(false)}
-                      className="flex-1 rounded-lg border border-slate-700 bg-slate-800 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-700"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={reqSubmitting}
-                      className="flex-1 rounded-lg bg-brand-600 py-2.5 text-sm font-semibold text-white hover:bg-brand-500 disabled:opacity-50"
-                    >
-                      {reqSubmitting ? 'Submitting...' : 'Submit Access Application'}
-                    </button>
-                  </div>
-                </form>
+              {regRole === 'ADMIN' && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                  <label className="block text-xs font-semibold text-amber-300 mb-1 flex items-center gap-1">
+                    <Lock className="h-3.5 w-3.5" />
+                    Administrator Secret Authorization Key
+                  </label>
+                  <input
+                    type="password"
+                    value={regAdminSecretKey}
+                    onChange={(e) => setRegAdminSecretKey(e.target.value)}
+                    required
+                    placeholder="Enter system admin secret key..."
+                    className="w-full rounded-lg border border-amber-500/40 bg-slate-950 p-2 text-xs text-amber-100 placeholder:text-amber-500/50 focus:outline-none"
+                  />
+                  <p className="mt-1 text-[10px] text-amber-400/80">
+                    Public ADMIN self-registration requires Administrator Key (`neuroute-admin-secret-2026`).
+                  </p>
+                </div>
               )}
+
+              <button
+                type="submit"
+                disabled={regSubmitting}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-3 text-xs font-bold text-white shadow-lg shadow-brand-600/25 transition-all hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
+              >
+                {regSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Creating Account in Database...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" />
+                    <span>Complete Registration</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-5 text-center border-t border-slate-800 pt-4">
+              <p className="text-xs text-slate-400">
+                Already have an operational account?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode('login');
+                    setErrors({});
+                  }}
+                  className="font-semibold text-brand-400 hover:text-brand-300 underline underline-offset-2"
+                >
+                  Sign In to Command Center
+                </button>
+              </p>
             </div>
           </div>
         )}

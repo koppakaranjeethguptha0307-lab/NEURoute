@@ -136,10 +136,11 @@ class AuthService:
         if self.user_repo.get_by_email(user_in.email):
             raise ConflictError(f"Email '{user_in.email}' is already registered")
 
-        # Resolve or create role
-        role = self.user_repo.get_role_by_name(user_in.role.value)
+        # Resolve or create role safely whether role is Enum or str
+        role_str = user_in.role.value if hasattr(user_in.role, "value") else str(user_in.role)
+        role = self.user_repo.get_role_by_name(role_str)
         if not role:
-            role = Role(name=user_in.role.value, description=f"Role for {user_in.role.value}")
+            role = Role(name=role_str, description=f"Role for {role_str}")
             self.db.add(role)
             self.db.flush()
 

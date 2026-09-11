@@ -96,7 +96,7 @@ def get_hazards_alias(service: GISService = Depends(get_gis_service)):
 def get_hubs_alias(service: GISService = Depends(get_gis_service)):
     return gis.get_hubs(service)
 
-# Additional resilient login route aliases
+# Additional resilient auth route aliases
 @app.post("/auth/login", response_model=auth.TokenResponse, tags=["Authentication & Identity"])
 @app.post("/login", response_model=auth.TokenResponse, tags=["Authentication & Identity"])
 def login_route_alias(
@@ -104,6 +104,14 @@ def login_route_alias(
     auth_service: auth.AuthService = Depends(auth.get_auth_service),
 ) -> auth.TokenResponse:
     return auth.login(credentials=credentials, auth_service=auth_service)
+
+
+@app.post("/register", status_code=201, tags=["Authentication & Identity"])
+def register_route_alias(
+    req: auth.RegisterRequest,
+    auth_service: auth.AuthService = Depends(auth.get_auth_service),
+):
+    return auth.register(req=req, auth_service=auth_service)
 
 
 

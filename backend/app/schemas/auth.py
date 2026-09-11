@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, Optional, Union
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.schemas.enums import UserRole
 
 
@@ -10,6 +10,17 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="Plaintext password")
     role: Optional[Union[UserRole, str]] = Field(default=None, description="Requested operational role")
     rememberMe: Optional[bool] = Field(default=False)
+
+
+class RegisterRequest(BaseModel):
+    full_name: str = Field(..., min_length=2, description="Full Name of user")
+    email: EmailStr = Field(..., description="Official work email address")
+    password: str = Field(..., min_length=6, description="Account password (min 6 chars)")
+    confirm_password: Optional[str] = Field(default=None, description="Confirm password")
+    organization: Optional[str] = Field(default=None, description="Organization / Department name")
+    phone_number: Optional[str] = Field(default=None, description="Phone number")
+    role: UserRole = Field(default=UserRole.FIELD_OFFICER, description="Operational role selection")
+    admin_secret_key: Optional[str] = Field(default=None, description="Admin secret key if registering ADMIN role")
 
 
 class AccessRequestCreate(BaseModel):
