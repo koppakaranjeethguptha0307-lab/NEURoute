@@ -20,6 +20,7 @@ import {
   submitFieldReport,
   synchronizePendingQueue,
   subscribeSyncStats,
+  setSimulatedOffline,
   SyncStats,
 } from '@/utils/offlineQueue';
 
@@ -238,7 +239,7 @@ export const IncidentsPage: React.FC = () => {
           <button
             onClick={() => {
               const nextState = !(syncStats && !syncStats.isOnline);
-              import('@/utils/offlineQueue').then((m) => m.setSimulatedOffline(nextState));
+              setSimulatedOffline(nextState);
             }}
             className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2.5 text-xs font-semibold border transition-all ${syncStats && !syncStats.isOnline
                 ? 'bg-amber-100 border-amber-300 text-amber-900 shadow-sm'
