@@ -19,6 +19,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { useEmergencyMode } from '@/contexts/EmergencyContext';
 import { DashboardKPIs, OperationalAlert, Incident, Shipment } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -66,8 +67,11 @@ export const DashboardPage: React.FC = () => {
   };
 
   const fetchDashboardData = useCallback(async (showRefreshingSpinner = false) => {
-    if (showRefreshingSpinner) setIsRefreshing(true);
-    else setIsLoading(true);
+    if (showRefreshingSpinner || kpis !== null) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
       const [kpiRes, alertsRes, incidentsRes, shipmentsRes] = await Promise.all([
@@ -102,31 +106,29 @@ export const DashboardPage: React.FC = () => {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [kpis]);
 
   useEffect(() => {
     fetchDashboardData();
 
-    const unsubscribe = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
-            evt.event === 'WEATHER_UPDATED' ||
-            evt.event === 'SIMULATION_RESET' ||
-            evt.event === 'DEMO_SCENARIO_COMPLETED' ||
-            evt.event === 'COLD_CHAIN_ALERT' ||
-            evt.event === 'EMERGENCY_MODE_TOGGLED')
-        ) {
-          fetchDashboardData(true);
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
+          evt.event === 'WEATHER_UPDATED' ||
+          evt.event === 'SIMULATION_RESET' ||
+          evt.event === 'DEMO_SCENARIO_COMPLETED' ||
+          evt.event === 'COLD_CHAIN_ALERT' ||
+          evt.event === 'EMERGENCY_MODE_TOGGLED')
+      ) {
+        fetchDashboardData(true);
+      }
     });
 
     const interval = setInterval(() => fetchDashboardData(true), 12000);
     return () => {
-      unsubscribe.then((unsub) => unsub && unsub());
+      unsubscribe();
       clearInterval(interval);
     };
   }, [fetchDashboardData]);
@@ -736,7 +738,7 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Floating Simulation Control Center */}
-      <SimulationControlCenter onSimulationTriggered={fetchDashboardData} />
+      <SimulationControlCenter onSimulationTriggered={() => fetchDashboardData(true)} />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Sparkles,
   Compass,
@@ -12,6 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { RouteOption } from '@/types';
 import { Skeleton } from '@/components/common/LoadingSkeleton';
 
@@ -47,6 +48,11 @@ export const RouteIntelligencePage: React.FC = () => {
   const [vehicleType, setVehicleType] = useState<string>('heavy_truck');
   const [avoidActiveHazards, setAvoidActiveHazards] = useState<boolean>(true);
 
+  const paramsRef = useRef({ origin, destination, cargoType, vehicleType, avoidActiveHazards });
+  useEffect(() => {
+    paramsRef.current = { origin, destination, cargoType, vehicleType, avoidActiveHazards };
+  }, [origin, destination, cargoType, vehicleType, avoidActiveHazards]);
+
   const fetchRoutesForParams = useCallback(
     async (
       targetOrigin?: string,
@@ -56,14 +62,17 @@ export const RouteIntelligencePage: React.FC = () => {
       targetAvoid?: boolean,
       showCalculatingSpinner = false
     ) => {
-      const activeOrigin = targetOrigin ?? origin;
-      const activeDest = targetDest ?? destination;
-      const activeCargo = targetCargo ?? cargoType;
-      const activeVehicle = targetVehicle ?? vehicleType;
-      const activeAvoid = targetAvoid ?? avoidActiveHazards;
+      const activeOrigin = targetOrigin ?? paramsRef.current.origin;
+      const activeDest = targetDest ?? paramsRef.current.destination;
+      const activeCargo = targetCargo ?? paramsRef.current.cargoType;
+      const activeVehicle = targetVehicle ?? paramsRef.current.vehicleType;
+      const activeAvoid = targetAvoid ?? paramsRef.current.avoidActiveHazards;
 
-      if (showCalculatingSpinner) setIsCalculating(true);
-      else setIsLoading(true);
+      if (showCalculatingSpinner) {
+        setIsCalculating(true);
+      } else if (routes.length === 0) {
+        setIsLoading(true);
+      }
 
       try {
         const result = await apiClient.post<{ routes: RouteOption[] }>('/routes/plan', {
@@ -87,26 +96,24 @@ export const RouteIntelligencePage: React.FC = () => {
         setIsCalculating(false);
       }
     },
-    [origin, destination, cargoType, vehicleType, avoidActiveHazards]
+    [routes.length]
   );
 
   useEffect(() => {
     fetchRoutesForParams();
-    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'SIMULATION_RESET' ||
-            evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'WEATHER_UPDATED' ||
-            evt.event === 'DEMO_SCENARIO_COMPLETED')
-        ) {
-          fetchRoutesForParams();
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'SIMULATION_RESET' ||
+          evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'WEATHER_UPDATED' ||
+          evt.event === 'DEMO_SCENARIO_COMPLETED')
+      ) {
+        fetchRoutesForParams(undefined, undefined, undefined, undefined, undefined, false);
+      }
     });
     return () => {
-      unsubPromise.then((unsub) => unsub && unsub());
+      unsubscribe();
     };
   }, [fetchRoutesForParams]);
 

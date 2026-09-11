@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 export interface EmergencyCorridor {
   corridorId: string;
@@ -108,16 +108,19 @@ export const EmergencyProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
+  const value = useMemo(
+    () => ({
+      isEmergencyMode,
+      toggleEmergencyMode,
+      setEmergencyMode,
+      safeCorridors: DEFAULT_SAFE_CORRIDORS,
+      emergencyCargoCategories: EMERGENCY_CARGO_CATEGORIES,
+    }),
+    [isEmergencyMode, toggleEmergencyMode, setEmergencyMode]
+  );
+
   return (
-    <EmergencyContext.Provider
-      value={{
-        isEmergencyMode,
-        toggleEmergencyMode,
-        setEmergencyMode,
-        safeCorridors: DEFAULT_SAFE_CORRIDORS,
-        emergencyCargoCategories: EMERGENCY_CARGO_CATEGORIES,
-      }}
-    >
+    <EmergencyContext.Provider value={value}>
       {children}
     </EmergencyContext.Provider>
   );

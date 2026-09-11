@@ -17,6 +17,7 @@ import {
   Activity,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { useEmergencyMode } from '@/contexts/EmergencyContext';
 import { Vehicle, Incident, RouteOption } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -93,24 +94,22 @@ export const GisMapPage: React.FC = () => {
 
   // Connect to Real-Time SSE Stream for zero-reload reactive updates
   useEffect(() => {
-    const unsubscribe = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
-            evt.event === 'WEATHER_UPDATED' ||
-            evt.event === 'SIMULATION_RESET')
-        ) {
-          loadMapData();
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
+          evt.event === 'WEATHER_UPDATED' ||
+          evt.event === 'SIMULATION_RESET')
+      ) {
+        loadMapData();
+      }
     });
 
     const pollInterval = setInterval(loadMapData, 10000);
 
     return () => {
-      unsubscribe.then((unsub) => unsub && unsub());
+      unsubscribe();
       clearInterval(pollInterval);
     };
   }, [loadMapData]);

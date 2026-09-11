@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { OperationalAlert, AlertCategory, AlertSeverity } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Skeleton } from '@/components/common/LoadingSkeleton';
@@ -43,8 +44,10 @@ export const AlertsPage: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  const fetchAlerts = useCallback(async () => {
-    setIsLoading(true);
+  const fetchAlerts = useCallback(async (isBackground = false) => {
+    if (!isBackground && alerts.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const data = await apiClient.get<OperationalAlert[]>('/alerts');
       const rawList = Array.isArray(data) ? data : [];
@@ -64,26 +67,24 @@ export const AlertsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [alerts.length]);
 
   useEffect(() => {
     fetchAlerts();
-    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'SIMULATION_RESET' ||
-            evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'COLD_CHAIN_ALERT' ||
-            evt.event === 'WEATHER_UPDATED' ||
-            evt.event === 'DEMO_SCENARIO_COMPLETED')
-        ) {
-          fetchAlerts();
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'SIMULATION_RESET' ||
+          evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'COLD_CHAIN_ALERT' ||
+          evt.event === 'WEATHER_UPDATED' ||
+          evt.event === 'DEMO_SCENARIO_COMPLETED')
+      ) {
+        fetchAlerts(true);
+      }
     });
     return () => {
-      unsubPromise.then((unsub) => unsub && unsub());
+      unsubscribe();
     };
   }, [fetchAlerts]);
 

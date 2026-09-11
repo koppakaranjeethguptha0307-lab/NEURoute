@@ -22,6 +22,7 @@ import {
   Compass,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { Shipment, Vehicle, ShipmentPriority } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { DataSourceBadge } from '@/components/common/DataSourceBadge';
@@ -90,8 +91,10 @@ export const LogisticsPage: React.FC = () => {
     priority: 'critical' as ShipmentPriority,
   });
 
-  const fetchData = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async (isBackground = false) => {
+    if (!isBackground && shipments.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const [shipmentsRes, vehiclesRes, simRes] = await Promise.all([
         apiClient.get<Shipment[]>('/shipments'),
@@ -106,36 +109,34 @@ export const LogisticsPage: React.FC = () => {
       if (simRes && simRes.target_road) {
         setSimState(simRes);
       }
-      if (sList.length > 0 && !selectedShipment) {
-        setSelectedShipment(sList[0]);
+      if (sList.length > 0) {
+        setSelectedShipment((prev) => prev || sList[0]);
       }
     } catch (err) {
       console.error('Failed to load logistics data:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedShipment]);
+  }, [shipments.length]);
 
   useEffect(() => {
     fetchData();
-    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'SIMULATION_RESET' ||
-            evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
-            evt.event === 'COLD_CHAIN_ALERT' ||
-            evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'WEATHER_UPDATED' ||
-            evt.event === 'EMERGENCY_MODE_TOGGLED' ||
-            evt.event === 'DEMO_SCENARIO_COMPLETED')
-        ) {
-          fetchData();
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'SIMULATION_RESET' ||
+          evt.event === 'VEHICLE_TELEMETRY_UPDATED' ||
+          evt.event === 'COLD_CHAIN_ALERT' ||
+          evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'WEATHER_UPDATED' ||
+          evt.event === 'EMERGENCY_MODE_TOGGLED' ||
+          evt.event === 'DEMO_SCENARIO_COMPLETED')
+      ) {
+        fetchData(true);
+      }
     });
     return () => {
-      unsubPromise.then((unsub) => unsub && unsub());
+      unsubscribe();
     };
   }, [fetchData]);
 

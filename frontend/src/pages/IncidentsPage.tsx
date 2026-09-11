@@ -11,6 +11,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { apiClient } from '@/services/apiClient';
+import { sseClient } from '@/utils/sseClient';
 import { Incident, IncidentSeverity, IncidentType, IncidentStatus } from '@/types';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Skeleton } from '@/components/common/LoadingSkeleton';
@@ -83,39 +84,39 @@ export const IncidentsPage: React.FC = () => {
     description: '',
   });
 
-  const fetchIncidents = useCallback(async () => {
-    setIsLoading(true);
+  const fetchIncidents = useCallback(async (isBackground = false) => {
+    if (!isBackground && incidents.length === 0) {
+      setIsLoading(true);
+    }
     try {
       const data = await apiClient.get<Incident[]>('/incidents');
       const list = Array.isArray(data) ? data : [];
       setIncidents(list);
-      if (list.length > 0 && !selectedIncident) {
-        setSelectedIncident(list[0]);
+      if (list.length > 0) {
+        setSelectedIncident((prev) => prev || list[0]);
       }
     } catch (err) {
       console.error('Failed to load incidents:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedIncident]);
+  }, [incidents.length]);
 
   useEffect(() => {
     fetchIncidents();
-    const unsubPromise = import('@/utils/sseClient').then(({ sseClient }) => {
-      return sseClient.subscribe((evt) => {
-        if (
-          evt &&
-          (evt.event === 'SIMULATION_RESET' ||
-            evt.event === 'ROAD_STATUS_UPDATED' ||
-            evt.event === 'FIELD_REPORT_SYNCED' ||
-            evt.event === 'DEMO_SCENARIO_COMPLETED')
-        ) {
-          fetchIncidents();
-        }
-      });
+    const unsubscribe = sseClient.subscribe((evt) => {
+      if (
+        evt &&
+        (evt.event === 'SIMULATION_RESET' ||
+          evt.event === 'ROAD_STATUS_UPDATED' ||
+          evt.event === 'FIELD_REPORT_SYNCED' ||
+          evt.event === 'DEMO_SCENARIO_COMPLETED')
+      ) {
+        fetchIncidents(true);
+      }
     });
     return () => {
-      unsubPromise.then((unsub) => unsub && unsub());
+      unsubscribe();
     };
   }, [fetchIncidents]);
 
